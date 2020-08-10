@@ -1,0 +1,12 @@
+{
+  "host": "0.0.0.0",
+  "webPort": 9000,
+  "apiPort": 9001,
+  "nodes": [
+    {
+      "host": "127.0.0.1",
+      "port": 9000
+    }
+  ],
+  "apiEnabled": true
+}

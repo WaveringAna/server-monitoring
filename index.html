@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Server Monitoring</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.bundle.min.js"></script>
+    <script src="public.js"></script>
+  </head>
+  <body>
+    <section>
+      <p>Uptime: <span id="uptime"></span></p>
+      <p>Total Memory: <span id="totalmem"></span></p>
+      <p>Free Memory: <span id="freemem"></span></p>
+      <p>CPU Usage: <span id="cpuUsage"></span></p>
+    </section>
+    <section>
+      <canvas id="cpuChart" width="400" height="400"></canvas>
+    </section>
+  </body>
+</html>
