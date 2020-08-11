@@ -5,18 +5,49 @@
     <title>Server Monitoring</title>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.bundle.min.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="public.js"></script>
+    <style>
+.line {
+	fill: none;
+	stroke: #f1c40f;
+	stroke-width: 3px;
+}
+.smoothline {
+	fill: none;
+	stroke: #e74c3c;
+	stroke-width: 3px;
+}
+.grid {
+	stroke: #DDD;
+	stroke-width: 1px;
+	fill: none;
+}
+
+body {
+  margin-left: 50px;
+}
+    </style>
   </head>
   <body>
     <section>
-      <p>Uptime: <span id="uptime"></span></p>
-      <p>Total Memory: <span id="totalmem"></span></p>
-      <p>Free Memory: <span id="freemem"></span></p>
-      <p>CPU Usage: <span id="cpuUsage"></span></p>
+      <section>
+        <h3>Current PC</h3>
+        <p>Uptime: <span id="uptime"></span></p>
+        <p>Total Memory: <span id="totalmem"></span></p>
+        <p>Used Memory: <span id="usedmem"></span></p>
+        <p>Free Memory: <span id="freemem"></span></p>
+        <p>CPU Usage: <span id="cpuUsage"></span></p>
+      </section>
+      <section>
+        <svg id="cpuChart"></div>
+      </section>
     </section>
     <section>
-      <canvas id="cpuChart" width="400" height="400"></canvas>
+      <h3>Add server</h3>
+      <form action="#" id="serverAdd">
+        <input action="#" id="m" autocomplete="off" /><button>Add</button>
+      </form>
     </section>
   </body>
 </html>

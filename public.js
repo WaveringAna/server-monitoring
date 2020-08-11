@@ -1,14 +1,88 @@
 $(function () {
   let socket = io();
 
+  let CPUUsageData = []; //TODO: a way to not need these two variables
+  let CPUGraph;
+
+  createGraph("#cpuChart", 100, 500, 500, 100, (path)=> {
+    console.log("Created CPU graph");
+    CPUGraph = path;
+  });
+
   setInterval(() => socket.emit('getInfo'), 1000);
-  socket.on('getInfo', function(info) {
+
+  socket.on('getInfo', (info) => {
+    // Example output: {"platform":"win32","freemem":15500861440,"totalmem":25718337536,"uptime":138367,"cpuUsage":0.032344114704901616}
     $('#uptime').text(secondsToHMS(info.uptime));
     $('#totalmem').text(formatBytes(info.totalmem));
+    $('#usedmem').text(formatBytes( (info.totalmem - info.freemem) ));
     $('#freemem').text(formatBytes(info.freemem));
     $('#cpuUsage').text(Math.floor(info.cpuUsage * 100) + "%");
+
+    CPUUsageData.push(Math.floor(info.cpuUsage * 100));
+    updateGraph("#cpuChart", 500, 100, CPUUsageData, CPUGraph, ()=>{ console.log("Updated CPU graph");  });;
   });
+
+  $("#serverAdd").submit((e) => {
+    e.preventDefault();
+  })
 });
+
+function createGraph(graph, height, width, xmax, ymax, callback) {
+  let chart = d3.select(graph)
+    .attr('width', width + 50)
+    .attr('height', height + 10);
+
+  let x = d3.scaleLinear().domain([0, xmax]).range([0, xmax]);
+  let y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
+
+  let line = d3.line()
+	 .x(function(d){ return x(d.x); })
+	 .y(function(d){ return y(d.y); });
+
+  // Draw the grid
+  chart.append('path').datum([{x: 0, y: 150}, {x: 500, y: 150}])
+    .attr('class', 'grid')
+    .attr('d', line);
+  chart.append('path').datum([{x: 0, y: 300}, {x: 500, y: 300}])
+    .attr('class', 'grid')
+    .attr('d', line);
+  chart.append('path').datum([{x: 0, y: 450}, {x: 500, y: 450}])
+    .attr('class', 'grid')
+    .attr('d', line);
+  chart.append('path').datum([{x: 50, y: 0}, {x: 50, y: 500}])
+    .attr('class', 'grid')
+    .attr('d', line);
+  chart.append('path').datum([{x: 250, y: 0}, {x: 250, y: 500}])
+    .attr('class', 'grid')
+    .attr('d', line);
+  chart.append('path').datum([{x: 450, y: 0}, {x: 450, y: 500}])
+    .attr('class', 'grid')
+    .attr('d', line);
+
+  let path = chart.append('path');
+
+  if (typeof callback == "function")
+    callback(path);
+}
+
+function updateGraph(graph, xmax, ymax, data, path, callback) {
+  let x = d3.scaleLinear().domain([0, data.length]).range([0, xmax]);
+  let y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
+
+  let smoothLine = d3.line().curve(d3.curveCardinal)
+	 .x((d, i) => { return x(i); })
+	 .y((d) => { return y(d); });
+
+  let chart = d3.select(graph);
+
+  path.datum(data)
+    .attr('class', 'smoothline')
+    .attr('d', smoothLine);
+
+  if (typeof callback == "function")
+    callback();
+}
 
 function secondsToHMS (t) {
   t = Number(t);
