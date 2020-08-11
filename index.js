@@ -2,6 +2,7 @@ const http = require('http');
 const os = require('os');
 const osutils = require('os-utils');
 const app = require('express')();
+const cors = require('cors');
 const config = require('./config.json');
 const WebServer = http.createServer(app).listen(config.webPort, (error) => {
   if (error)
@@ -10,11 +11,13 @@ const WebServer = http.createServer(app).listen(config.webPort, (error) => {
 });
 const io = require('socket.io')(WebServer);
 
+app.use(cors());
+
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-app.get('/public.js' , (req, res) => {
+app.get('/public.js', (req, res) => {
   res.sendFile(__dirname + '/public.js');
 });
 
@@ -29,6 +32,10 @@ io.on('connection', (socket) => {
 if (config.apiEnabled == true) {
   const APIServer = http.createServer((req, res) => {
     getInfo((info) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Access-Control-Allow-Credentials', true);
       res.write(JSON.stringify(info));
       res.end();
     });

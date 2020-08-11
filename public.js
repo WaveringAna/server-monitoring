@@ -1,15 +1,16 @@
 $(function () {
   let socket = io();
 
-  let CPUUsageData = []; //TODO: a way to not need these two variables
+  let CPUUsageData = []; //TODO: a way to not need these variables
   let CPUGraph;
+  let AddedServers = 0;
 
   createGraph("#cpuChart", 100, 500, 500, 100, (path)=> {
     console.log("Created CPU graph");
     CPUGraph = path;
   });
 
-  setInterval(() => socket.emit('getInfo'), 1000);
+  setInterval(() => socket.emit('getInfo'), 1000); //Ping socket to get info every second
 
   socket.on('getInfo', (info) => {
     // Example output: {"platform":"win32","freemem":15500861440,"totalmem":25718337536,"uptime":138367,"cpuUsage":0.032344114704901616}
@@ -25,7 +26,42 @@ $(function () {
 
   $("#serverAdd").submit((e) => {
     e.preventDefault();
-  })
+
+    let Server = $('#m').val();
+    let Graph; //TODO: a way to not need these variables
+    let CPUUsageData = [];
+    AddedServers++;
+
+    $("body").append("<section id='" + AddedServers + "'></section>");
+    $("#" + AddedServers).append("<h3>"+ Server +"</h3>");
+    $("#" + AddedServers).append("<p>Uptime: <span id='uptime" + AddedServers + "'></span></p>");
+    $("#" + AddedServers).append("<p>Total Memory: <span id='totalmem" + AddedServers + "'></span></p>");
+    $("#" + AddedServers).append("<p>Used Memory: <span id='usedmem"  +AddedServers + "'></span></p>");
+    $("#" + AddedServers).append("<p>Free Memory: <span id='freemem" + AddedServers + "'></span></p>");
+    $("#" + AddedServers).append("<p>CPU Usage: <span id='cpuUsage" + AddedServers + "'></span></p>");
+
+    $("body").append("<svg id='cpuChart" + AddedServers + "'></svg>");
+
+    createGraph("#cpuChart" + AddedServers, 100, 500, 500, 100, (path) => {
+      console.log("Created CPU graph for " + Server);
+      Graph = path;
+    });
+
+    setInterval(() => {
+        $.get("http://" + Server, (data, status, jqXHR) => {
+          data = JSON.parse(data);
+          console.log(data)
+          $("#uptime" + AddedServers).text(secondsToHMS(data.uptime));
+          $("#totalmem" + AddedServers).text(formatBytes(data.totalmem));
+          $("#usedmem" + AddedServers).text(formatBytes((data.totalmem - data.freemem)));
+          $("#freemem" + AddedServers).text(formatBytes(data.freemem));
+          $("#cpuUsage" + AddedServers).text(Math.floor(data.cpuUsage * 100) +"%");
+
+          CPUUsageData.push(Math.floor(data.cpuUsage * 100));
+          updateGraph("#cpuChart" + AddedServers, 500, 100, CPUUsageData, Graph, ()=>{ console.log("Updated CPU graph for " + Server); });
+        });
+    }, 1000);
+  });
 });
 
 function createGraph(graph, height, width, xmax, ymax, callback) {
