@@ -31,8 +31,9 @@ $(function () {
     let Graph; //TODO: a way to not need these variables
     let CPUUsageData = [];
     AddedServers++;
+    const CurrentServer = AddedServers;
 
-    $("body").append("<section id='" + AddedServers + "'></section>");
+    $("#row").append("<div id='" + AddedServers + "' class='col-md-6 mt-2'></div>");
     $("#" + AddedServers).append("<h3>"+ Server +"</h3>");
     $("#" + AddedServers).append("<p>Uptime: <span id='uptime" + AddedServers + "'></span></p>");
     $("#" + AddedServers).append("<p>Total Memory: <span id='totalmem" + AddedServers + "'></span></p>");
@@ -40,7 +41,7 @@ $(function () {
     $("#" + AddedServers).append("<p>Free Memory: <span id='freemem" + AddedServers + "'></span></p>");
     $("#" + AddedServers).append("<p>CPU Usage: <span id='cpuUsage" + AddedServers + "'></span></p>");
 
-    $("body").append("<svg id='cpuChart" + AddedServers + "'></svg>");
+    $("#" + AddedServers).append("<svg id='cpuChart" + AddedServers + "'></svg>");
 
     createGraph("#cpuChart" + AddedServers, 100, 500, 500, 100, (path) => {
       console.log("Created CPU graph for " + Server);
@@ -48,17 +49,18 @@ $(function () {
     });
 
     setInterval(() => {
+        console.log(CurrentServer)
         $.get("http://" + Server, (data, status, jqXHR) => {
           data = JSON.parse(data);
           console.log(data)
-          $("#uptime" + AddedServers).text(secondsToHMS(data.uptime));
-          $("#totalmem" + AddedServers).text(formatBytes(data.totalmem));
-          $("#usedmem" + AddedServers).text(formatBytes((data.totalmem - data.freemem)));
-          $("#freemem" + AddedServers).text(formatBytes(data.freemem));
-          $("#cpuUsage" + AddedServers).text(Math.floor(data.cpuUsage * 100) +"%");
+          $("#uptime" + CurrentServer).text(secondsToHMS(data.uptime));
+          $("#totalmem" + CurrentServer).text(formatBytes(data.totalmem));
+          $("#usedmem" + CurrentServer).text(formatBytes((data.totalmem - data.freemem)));
+          $("#freemem" + CurrentServer).text(formatBytes(data.freemem));
+          $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage * 100) +"%");
 
           CPUUsageData.push(Math.floor(data.cpuUsage * 100));
-          updateGraph("#cpuChart" + AddedServers, 500, 100, CPUUsageData, Graph, ()=>{ console.log("Updated CPU graph for " + Server); });
+          updateGraph("#cpuChart" + CurrentServer, 500, 100, CPUUsageData, Graph, ()=>{ console.log("Updated CPU graph for " + Server); });
         });
     }, 1000);
   });

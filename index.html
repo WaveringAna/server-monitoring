@@ -23,29 +23,32 @@
 	stroke-width: 1px;
 	fill: none;
 }
-
-body {
-  margin-left: 50px;
-}
     </style>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
   </head>
   <body>
-    <section>
-      <section>
-        <h3>Current PC</h3>
-        <p>Uptime: <span id="uptime"></span></p>
-        <p>Total Memory: <span id="totalmem"></span></p>
-        <p>Used Memory: <span id="usedmem"></span></p>
-        <p>Free Memory: <span id="freemem"></span></p>
-        <p>CPU Usage: <span id="cpuUsage"></span></p>
-        <svg id="cpuChart"></div>
-      </section>
-    </section>
-    <section>
-      <h3>Add server</h3>
-      <form action="#" id="serverAdd">
-        <input action="#" id="m" autocomplete="off" /><button>Add</button>
-      </form>
-    </section>
+    <div class="container">
+      <nav class="navbar-custom mt-4">
+        <div class="app-search dropdown d-none d-lg-block">
+          <form action="#" id="serverAdd">
+            <div class="input-group">
+              <input action="#" id="m" autocomplete="off" class="form-control dropdown-toggle" type="text" placeholder="Add server..."/>
+              <div class="input-group-append"><button class="btn btn-primary">Add</button></div>
+            </div>
+          </form>
+        </div>
+      </nav>
+      <div class="row" id="row">
+        <div class="col-md-6 mt-2">
+          <h3>Current PC</h3>
+          <p>Uptime: <span id="uptime"></span></p>
+          <p>Total Memory: <span id="totalmem"></span></p>
+          <p>Used Memory: <span id="usedmem"></span></p>
+          <p>Free Memory: <span id="freemem"></span></p>
+          <p>CPU Usage: <span id="cpuUsage"></span></p>
+          <svg id="cpuChart"></div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
