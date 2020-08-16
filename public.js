@@ -1,11 +1,22 @@
-$(function () {
+let Servers = [];
+let AddedServers = 0;
+
+$(function () { //On page load
   let socket = io();
 
   let CPUUsageData = []; //TODO: a way to not need these variables
   let CPUGraph;
-  let AddedServers = 0;
 
-  createGraph("#cpuChart", 100, 500, 500, 100, (path)=> {
+  if (localStorage.getItem('Servers') !== null) {
+    Servers = JSON.parse(localStorage.getItem('Servers'));
+    for (let i = 0; i < Servers.length; i++) {
+      createServer(Servers[i]);
+    }
+  }
+
+  console.log(JSON.parse(localStorage.getItem('Servers')));
+
+  createGraph('#cpuChart', 100, 500, 500, 100, (path)=> {
     console.log("Created CPU graph");
     CPUGraph = path;
   });
@@ -21,87 +32,104 @@ $(function () {
     $('#cpuUsage').text(Math.floor(info.cpuUsage * 100) + "%");
 
     CPUUsageData.push(Math.floor(info.cpuUsage * 100));
-    updateGraph("#cpuChart", 500, 100, CPUUsageData, CPUGraph, ()=>{ console.log("Updated CPU graph");  });;
+    updateGraph("#cpuChart", 500, 100, CPUUsageData, CPUGraph, ()=>{ /**console.log("Updated CPU graph");**/  });;
   });
 
   $("#serverAdd").submit((e) => {
-    e.preventDefault();
+    e.preventDefault(); //Prevent page refresh
 
     let Server = $('#m').val();
-    let Graph; //TODO: a way to not need these variables
-    let CPUUsageData = [];
-    AddedServers++;
-    const CurrentServer = AddedServers;
+    if (isURL(Server)) {
+      Servers.push(Server);
+      localStorage.setItem('Servers', JSON.stringify(Servers));
+      createServer(Server);
+    } else {
+      alert(Server + " is not a valid URL")
+    }
+  });
 
-    $("#row").append("<div id='" + AddedServers + "' class='col-md-6 mt-2'></div>");
-    $("#" + AddedServers).append("<h3>"+ Server +"</h3>");
-    $("#" + AddedServers).append("<p>Uptime: <span id='uptime" + AddedServers + "'></span></p>");
-    $("#" + AddedServers).append("<p>Total Memory: <span id='totalmem" + AddedServers + "'></span></p>");
-    $("#" + AddedServers).append("<p>Used Memory: <span id='usedmem"  +AddedServers + "'></span></p>");
-    $("#" + AddedServers).append("<p>Free Memory: <span id='freemem" + AddedServers + "'></span></p>");
-    $("#" + AddedServers).append("<p>CPU Usage: <span id='cpuUsage" + AddedServers + "'></span></p>");
-
-    $("#" + AddedServers).append("<svg id='cpuChart" + AddedServers + "'></svg>");
-
-    createGraph("#cpuChart" + AddedServers, 100, 500, 500, 100, (path) => {
-      console.log("Created CPU graph for " + Server);
-      Graph = path;
-    });
-
-    setInterval(() => {
-        console.log(CurrentServer)
-        $.get("http://" + Server, (data, status, jqXHR) => {
-          data = JSON.parse(data);
-          console.log(data)
-          $("#uptime" + CurrentServer).text(secondsToHMS(data.uptime));
-          $("#totalmem" + CurrentServer).text(formatBytes(data.totalmem));
-          $("#usedmem" + CurrentServer).text(formatBytes((data.totalmem - data.freemem)));
-          $("#freemem" + CurrentServer).text(formatBytes(data.freemem));
-          $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage * 100) +"%");
-
-          CPUUsageData.push(Math.floor(data.cpuUsage * 100));
-          updateGraph("#cpuChart" + CurrentServer, 500, 100, CPUUsageData, Graph, ()=>{ console.log("Updated CPU graph for " + Server); });
-        });
-    }, 1000);
+  $("#serverDelete").submit((e) => {
+    e.preventDefault();
+    localStorage.clear();
+    for (let i = 1; i < AddedServers + 1; i++) {
+      clearInterval(i - 1);
+      $("#" + i).remove();
+    }
   });
 });
 
+function createServer(Server) {
+  let Graph; //TODO: a way to not need these variables
+  let CPUUsageData = [];
+  AddedServers++;
+  const CurrentServer = AddedServers;
+
+  $("#row").append("<div id='" + AddedServers + "' class='col-md-6 mt-2'></div>");
+  $("#" + AddedServers).append("<h3>"+ Server +"</h3>");
+  $("#" + AddedServers).append("<p>Uptime: <span id='uptime" + AddedServers + "'></span></p>");
+  $("#" + AddedServers).append("<p>Total Memory: <span id='totalmem" + AddedServers + "'></span></p>");
+  $("#" + AddedServers).append("<p>Used Memory: <span id='usedmem"  +AddedServers + "'></span></p>");
+  $("#" + AddedServers).append("<p>Free Memory: <span id='freemem" + AddedServers + "'></span></p>");
+  $("#" + AddedServers).append("<p>CPU Usage: <span id='cpuUsage" + AddedServers + "'></span></p>");
+
+  $("#" + AddedServers).append("<svg id='cpuChart" + AddedServers + "'></svg>");
+
+  createGraph("#cpuChart" + AddedServers, 100, 500, 500, 100, (path) => {
+    console.log("Created CPU graph for " + Server);
+    Graph = path;
+  });
+
+  setInterval(() => {
+    $.get("http://" + Server, (data, status, jqXHR) => {
+      data = JSON.parse(data);
+      $("#uptime" + CurrentServer).text(secondsToHMS(data.uptime));
+      $("#totalmem" + CurrentServer).text(formatBytes(data.totalmem));
+      $("#usedmem" + CurrentServer).text(formatBytes((data.totalmem - data.freemem)));
+      $("#freemem" + CurrentServer).text(formatBytes(data.freemem));
+      $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage * 100) +"%");
+
+      CPUUsageData.push(Math.floor(data.cpuUsage * 100));
+      updateGraph("#cpuChart" + CurrentServer, 500, 100, CPUUsageData, Graph, ()=>{ /**console.log("Updated CPU graph for " + Server);**/ });
+    });
+  }, 1000);
+}
+
 function createGraph(graph, height, width, xmax, ymax, callback) {
   let chart = d3.select(graph)
-    .attr('width', width + 50)
-    .attr('height', height + 10);
+  .attr('width', width + 50)
+  .attr('height', height + 10);
 
   let x = d3.scaleLinear().domain([0, xmax]).range([0, xmax]);
   let y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
 
   let line = d3.line()
-	 .x(function(d){ return x(d.x); })
-	 .y(function(d){ return y(d.y); });
+  .x(function(d){ return x(d.x); })
+  .y(function(d){ return y(d.y); });
 
   // Draw the grid
   chart.append('path').datum([{x: 0, y: 150}, {x: 500, y: 150}])
-    .attr('class', 'grid')
-    .attr('d', line);
+  .attr('class', 'grid')
+  .attr('d', line);
   chart.append('path').datum([{x: 0, y: 300}, {x: 500, y: 300}])
-    .attr('class', 'grid')
-    .attr('d', line);
+  .attr('class', 'grid')
+  .attr('d', line);
   chart.append('path').datum([{x: 0, y: 450}, {x: 500, y: 450}])
-    .attr('class', 'grid')
-    .attr('d', line);
+  .attr('class', 'grid')
+  .attr('d', line);
   chart.append('path').datum([{x: 50, y: 0}, {x: 50, y: 500}])
-    .attr('class', 'grid')
-    .attr('d', line);
+  .attr('class', 'grid')
+  .attr('d', line);
   chart.append('path').datum([{x: 250, y: 0}, {x: 250, y: 500}])
-    .attr('class', 'grid')
-    .attr('d', line);
+  .attr('class', 'grid')
+  .attr('d', line);
   chart.append('path').datum([{x: 450, y: 0}, {x: 450, y: 500}])
-    .attr('class', 'grid')
-    .attr('d', line);
+  .attr('class', 'grid')
+  .attr('d', line);
 
   let path = chart.append('path');
 
   if (typeof callback == "function")
-    callback(path);
+  callback(path);
 }
 
 function updateGraph(graph, xmax, ymax, data, path, callback) {
@@ -109,17 +137,17 @@ function updateGraph(graph, xmax, ymax, data, path, callback) {
   let y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
 
   let smoothLine = d3.line().curve(d3.curveCardinal)
-	 .x((d, i) => { return x(i); })
-	 .y((d) => { return y(d); });
+  .x((d, i) => { return x(i); })
+  .y((d) => { return y(d); });
 
   let chart = d3.select(graph);
 
   path.datum(data)
-    .attr('class', 'smoothline')
-    .attr('d', smoothLine);
+  .attr('class', 'smoothline')
+  .attr('d', smoothLine);
 
   if (typeof callback == "function")
-    callback();
+  callback();
 }
 
 function secondsToHMS (t) {
@@ -144,4 +172,14 @@ function formatBytes(bytes, decimals = 2) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function isURL(str) {
+  var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
+    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+    '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+    '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+    '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+  return !!pattern.test(str);
 }
