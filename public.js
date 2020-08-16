@@ -1,6 +1,11 @@
 let Servers = [];
 let AddedServers = 0;
 
+let Options = {
+  pollingRate: 10, //milliseconds
+  dataPoints: 2500
+}
+
 $(function () { //On page load
   let socket = io();
 
@@ -14,6 +19,10 @@ $(function () { //On page load
     }
   }
 
+  if (localStorage.getItem('PollingRate') !== null) {
+    Options.pollingRate = localStorage.getItem('PollingRate');
+  }
+
   console.log(JSON.parse(localStorage.getItem('Servers')));
 
   createGraph('#cpuChart', 100, 500, 500, 100, (path)=> {
@@ -21,7 +30,7 @@ $(function () { //On page load
     CPUGraph = path;
   });
 
-  setInterval(() => socket.emit('getInfo'), 1000); //Ping socket to get info every second
+  setInterval(() => socket.emit('getInfo'), Options.pollingRate); //Ping socket to get info every second
 
   socket.on('getInfo', (info) => {
     // Example output: {"platform":"win32","freemem":15500861440,"totalmem":25718337536,"uptime":138367,"cpuUsage":0.032344114704901616}
@@ -32,6 +41,7 @@ $(function () { //On page load
     $('#cpuUsage').text(Math.floor(info.cpuUsage * 100) + "%");
 
     CPUUsageData.push(Math.floor(info.cpuUsage * 100));
+    if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
     updateGraph("#cpuChart", 500, 100, CPUUsageData, CPUGraph, ()=>{ /**console.log("Updated CPU graph");**/  });;
   });
 
@@ -52,7 +62,7 @@ $(function () { //On page load
     e.preventDefault();
     localStorage.clear();
     for (let i = 1; i < AddedServers + 1; i++) {
-      clearInterval(i - 1);
+      clearInterval(i - 1); //Clear the intervals that are updating graphs
       $("#" + i).remove();
     }
   });
@@ -89,9 +99,10 @@ function createServer(Server) {
       $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage * 100) +"%");
 
       CPUUsageData.push(Math.floor(data.cpuUsage * 100));
+      if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
       updateGraph("#cpuChart" + CurrentServer, 500, 100, CPUUsageData, Graph, ()=>{ /**console.log("Updated CPU graph for " + Server);**/ });
     });
-  }, 1000);
+  }, Options.pollingRate);
 }
 
 function createGraph(graph, height, width, xmax, ymax, callback) {
@@ -129,7 +140,7 @@ function createGraph(graph, height, width, xmax, ymax, callback) {
   let path = chart.append('path');
 
   if (typeof callback == "function")
-  callback(path);
+    callback(path);
 }
 
 function updateGraph(graph, xmax, ymax, data, path, callback) {
@@ -147,7 +158,7 @@ function updateGraph(graph, xmax, ymax, data, path, callback) {
   .attr('d', smoothLine);
 
   if (typeof callback == "function")
-  callback();
+    callback();
 }
 
 function secondsToHMS (t) {
