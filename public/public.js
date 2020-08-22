@@ -2,15 +2,36 @@ let Servers = [];
 let AddedServers = 0;
 
 let Options = {
-  pollingRate: 10, //milliseconds
-  dataPoints: 2500
-}
+  pollingRate: 1000, //milliseconds
+  dataPoints: 50
+};
 
 $(function () { //On page load
   let socket = io();
 
   let CPUUsageData = []; //TODO: a way to not need these variables
   let CPUGraph;
+
+  if (localStorage.getItem('PollingRate') !== null) {
+    Options.pollingRate = localStorage.getItem('PollingRate');
+    $("#pollingRateVal").text(Options.pollingRate);
+  }
+
+  if (localStorage.getItem('DataPoints') !== null) {
+    Options.dataPoints = localStorage.getItem('DataPoints');
+    $("#dataPointsVal").text(Options.dataPoints);
+  }
+
+  $("#pollingRate").slider({
+    ticks: [100, 500, 1000, 1500, 2000],
+    ticks_snap_bounds: 30
+  }).slider('setValue', Options.pollingRate);
+  $("#dataPoints").slider({
+    ticks: [50, 100, 150, 200, 250],
+    ticks_snap_bounds: 30
+  }).slider('setValue', Options.dataPoints);
+  $("#pollingRateVal").text(Options.pollingRate);
+  $("#dataPointsVal").text(Options.dataPoints);
 
   if (localStorage.getItem('Servers') !== null) {
     Servers = JSON.parse(localStorage.getItem('Servers'));
@@ -19,11 +40,19 @@ $(function () { //On page load
     }
   }
 
-  if (localStorage.getItem('PollingRate') !== null) {
-    Options.pollingRate = localStorage.getItem('PollingRate');
-  }
+  $("#pollingRate").on("slide", (slideEvt) => {
+    $("#pollingRateVal").text(slideEvt.value);
+    Options.pollingRate = slideEvt.value;
+    localStorage.setItem('PollingRate', slideEvt.value);
+  });
 
-  console.log(JSON.parse(localStorage.getItem('Servers')));
+  $("#dataPoints").on("slide", (slideEvt) => {
+    $("#dataPointsVal").text(slideEvt.value);
+    Options.dataPoints = slideEvt.value;
+    localStorage.setItem('DataPoints', slideEvt.value);
+  });
+
+  //console.log(JSON.parse(localStorage.getItem('Servers')));
 
   createGraph('#cpuChart', 100, 500, 500, 100, (path)=> {
     console.log("Created CPU graph");
@@ -42,7 +71,19 @@ $(function () { //On page load
 
     CPUUsageData.push(Math.floor(info.cpuUsage * 100));
     if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
-    updateGraph("#cpuChart", 500, 100, CPUUsageData, CPUGraph, ()=>{ /**console.log("Updated CPU graph");**/  });;
+    updateGraph(500, 100, CPUUsageData, CPUGraph, ()=>{ /**console.log("Updated CPU graph");**/  });
+
+    let formattedDrives = _(info.disks)
+      .groupBy('_mounted')
+      .map((value, key) => ({
+        drive: key,
+        capacity: _.sumBy(value, '_capacity')
+      })).value();
+
+    /**for (const disk of formattedDrives) {
+      $('#disks').append("<li>" + disk.drive + " " + disk.capacity);
+      console.log(disk)
+    }**/
   });
 
   $("#serverAdd").submit((e) => {
@@ -54,13 +95,14 @@ $(function () { //On page load
       localStorage.setItem('Servers', JSON.stringify(Servers));
       createServer(Server);
     } else {
-      alert(Server + " is not a valid URL")
+      alert(Server + " is not a valid URL");
     }
   });
 
   $("#serverDelete").submit((e) => {
     e.preventDefault();
-    localStorage.clear();
+    localStorage.clear()
+    Servers = [];
     for (let i = 1; i < AddedServers + 1; i++) {
       clearInterval(i - 1); //Clear the intervals that are updating graphs
       $("#" + i).remove();
@@ -89,20 +131,20 @@ function createServer(Server) {
     Graph = path;
   });
 
-  setInterval(() => {
-    $.get("http://" + Server, (data, status, jqXHR) => {
-      data = JSON.parse(data);
-      $("#uptime" + CurrentServer).text(secondsToHMS(data.uptime));
-      $("#totalmem" + CurrentServer).text(formatBytes(data.totalmem));
-      $("#usedmem" + CurrentServer).text(formatBytes((data.totalmem - data.freemem)));
-      $("#freemem" + CurrentServer).text(formatBytes(data.freemem));
-      $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage * 100) +"%");
+  let socket = io('http://' + Server);
+  setInterval(() => socket.emit('getInfo'), Options.pollingRate);
 
-      CPUUsageData.push(Math.floor(data.cpuUsage * 100));
-      if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
-      updateGraph("#cpuChart" + CurrentServer, 500, 100, CPUUsageData, Graph, ()=>{ /**console.log("Updated CPU graph for " + Server);**/ });
-    });
-  }, Options.pollingRate);
+  socket.on('getInfo', (data) => {
+    $("#uptime" + CurrentServer).text(secondsToHMS(data.uptime));
+    $("#totalmem" + CurrentServer).text(formatBytes(data.totalmem));
+    $("#usedmem" + CurrentServer).text(formatBytes((data.totalmem - data.freemem)));
+    $("#freemem" + CurrentServer).text(formatBytes(data.freemem));
+    $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage * 100) +"%");
+
+    CPUUsageData.push(Math.floor(data.cpuUsage * 100));
+    if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
+    updateGraph(500, 100, CPUUsageData, Graph, ()=>{ /**console.log("Updated CPU graph for " + Server);**/ });
+  });
 }
 
 function createGraph(graph, height, width, xmax, ymax, callback) {
@@ -138,20 +180,17 @@ function createGraph(graph, height, width, xmax, ymax, callback) {
   .attr('d', line);
 
   let path = chart.append('path');
-
   if (typeof callback == "function")
     callback(path);
 }
 
-function updateGraph(graph, xmax, ymax, data, path, callback) {
+function updateGraph(xmax, ymax, data, path, callback) {
   let x = d3.scaleLinear().domain([0, data.length]).range([0, xmax]);
   let y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
 
   let smoothLine = d3.line().curve(d3.curveCardinal)
   .x((d, i) => { return x(i); })
   .y((d) => { return y(d); });
-
-  let chart = d3.select(graph);
 
   path.datum(data)
   .attr('class', 'smoothline')
@@ -188,7 +227,8 @@ function formatBytes(bytes, decimals = 2) {
 function isURL(str) {
   var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
     '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
-    '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+    '((\\d{1,3}\\.){3}\\d{1,3}))|'+ // OR ip (v4) address
+    '(localhost)' + // OR localhost
     '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
     '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
     '(\\#[-a-z\\d_]*)?$','i'); // fragment locator

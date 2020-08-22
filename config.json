@@ -8,5 +8,5 @@
       "port": 9000
     }
   ],
-  "apiEnabled": true
+  "apiEnabled": false
 }

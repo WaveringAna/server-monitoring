@@ -1,9 +1,9 @@
 const http = require('http');
-const os = require('os');
-const osutils = require('os-utils');
 const app = require('express')();
 const cors = require('cors');
 const config = require('./config.json');
+const os = require('./lib/monitoring-utils.js');
+
 const WebServer = http.createServer(app).listen(config.webPort, (error) => {
   if (error)
     return console.error(error);
@@ -14,11 +14,15 @@ const io = require('socket.io')(WebServer);
 app.use(cors());
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  res.sendFile(__dirname + '/public/index.html');
 });
 
 app.get('/public.js', (req, res) => {
-  res.sendFile(__dirname + '/public.js');
+  res.sendFile(__dirname + '/public/public.js');
+});
+
+app.get('/style.css', (req, res) => {
+  res.sendFile(__dirname + '/public/style.css');
 });
 
 io.on('connection', (socket) => {
@@ -42,7 +46,7 @@ if (config.apiEnabled == true) {
   }).listen(config.apiPort, (error) => {
     if (error)
       return console.error(error);
-      console.log("Api Server listening on " + config.apiPort);
+    console.log("Api Server listening on " + config.apiPort);
   });
 }
 
@@ -52,12 +56,14 @@ function getInfo(callback) {
     freemem: os.freemem(),
     totalmem: os.totalmem(),
     uptime: os.uptime(),
-    cpuUsage: null
+    cpuUsage: null,
+    disks: os.diskInfoSync()
   }
 
-  osutils.cpuUsage((v) => {
+  os.cpuUsage((v) => {
     info.cpuUsage = v;
     if (typeof callback == "function")
       callback(info);
+    else return info;
   });
 }
