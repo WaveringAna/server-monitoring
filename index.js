@@ -63,7 +63,6 @@ function getInfo(callback) {
   os.cpuUsage((v) => {
     info.cpuUsage = v;
     if (typeof callback == "function")
-      callback(info);
-    else return info;
+      callback(info)
   });
 }
