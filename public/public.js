@@ -80,10 +80,11 @@ $(function () { //On page load
         capacity: _.sumBy(value, '_capacity')
       })).value();
 
-    /**for (const disk of formattedDrives) {
-      $('#disks').append("<li>" + disk.drive + " " + disk.capacity);
-      console.log(disk)
-    }**/
+    if ($('#disks').empty()) { //TODO make it live updating instead of only running if its empty
+      for (const disk of formattedDrives) {
+        $('#disks').append("<li>" + disk.drive + " " + disk.capacity);
+      }
+    }
   });
 
   $("#serverAdd").submit((e) => {
@@ -122,6 +123,7 @@ function createServer(Server) {
   $("#" + AddedServers).append("<p>Total Memory: <span id='totalmem" + AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<p>Used Memory: <span id='usedmem"  +AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<p>Free Memory: <span id='freemem" + AddedServers + "'></span></p>");
+  $("#" + AddedServers).append("<p class='dropdown-toggle' id='disksdropdown" + AddedServers + "' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>Disks: <ul class='dropdown-menu' aria-labelledby='disksdropdown" + AddedServers + "' id='disks" + AddedServers + "'></ul></p>")
   $("#" + AddedServers).append("<p>CPU Usage: <span id='cpuUsage" + AddedServers + "'></span></p>");
 
   $("#" + AddedServers).append("<svg id='cpuChart" + AddedServers + "'></svg>");
@@ -144,6 +146,19 @@ function createServer(Server) {
     CPUUsageData.push(Math.floor(data.cpuUsage * 100));
     if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
     updateGraph(500, 100, CPUUsageData, Graph, ()=>{ /**console.log("Updated CPU graph for " + Server);**/ });
+
+    let formattedDrives = _(data.disks)
+      .groupBy('_mounted')
+      .map((value, key) => ({
+        drive: key,
+        capacity: _.sumBy(value, '_capacity')
+      })).value();
+
+    if ($('#disks' + CurrentServer).empty()) { //TODO make it live updating instead of only running if its empty
+      for (const disk of formattedDrives) {
+        $('#disks' + CurrentServer).append("<li>" + disk.drive + " " + disk.capacity);
+      }
+    }
   });
 }
 

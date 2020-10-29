@@ -30,8 +30,9 @@ Default port is 9001, posts a JSON string, example
 ```
 {"platform":"linux","freemem":1154822144,"totalmem":3862515712,"uptime":607068,"cpuUsage":0}
 ```
- 
+
 TODO
 -------------
-* Networking Statistics
-* Drive Statistics
+* Networking Polling
+* GPU Polling
+* Maybe a rewrite to go-lang for better hardware polling

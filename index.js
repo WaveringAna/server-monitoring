@@ -1,13 +1,18 @@
 const http = require('http');
+const present = require('present');
 const app = require('express')();
 const cors = require('cors');
+
 const config = require('./config.json');
 const os = require('./lib/monitoring-utils.js');
+const logging = require('./lib/logging.js')
 
 const WebServer = http.createServer(app).listen(config.webPort, (error) => {
   if (error)
     return console.error(error);
-  console.log("Web Server listening on " + config.webPort);
+
+  if (config.debug != "none")
+    logging("WebServer", "special", "WebServer is now running at port " + config.webPort);
 });
 const io = require('socket.io')(WebServer);
 
@@ -51,6 +56,7 @@ if (config.apiEnabled == true) {
 }
 
 function getInfo(callback) {
+  let t0 = present();
   let info = {
     platform: os.platform(),
     freemem: os.freemem(),
@@ -63,6 +69,11 @@ function getInfo(callback) {
   os.cpuUsage((v) => {
     info.cpuUsage = v;
     if (typeof callback == "function")
-      callback(info)
+      callback(info);
+
+    if (config.logging == "verbose") {
+      let t1 = present();
+      logging("GetInfo", "debug", "getInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 1 second
+    }
   });
 }
