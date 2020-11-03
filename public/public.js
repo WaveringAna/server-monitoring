@@ -7,11 +7,8 @@ let Options = {
 };
 
 $(function() { //On page load
-  let socket = io();
 
-  let CPUUsageData = []; //TODO: a way to not need these variables
-  let CPUGraph;
-
+  createServer("Current PC")
   if (localStorage.getItem('PollingRate') !== null) {
     Options.pollingRate = localStorage.getItem('PollingRate');
     $("#pollingRateVal").text(Options.pollingRate);
@@ -56,48 +53,20 @@ $(function() { //On page load
 
   //console.log(JSON.parse(localStorage.getItem('Servers')));
 
-  createGraph('#cpuChart', 100, 500, 500, 100, (path) => {
-    console.log("Created CPU graph");
-    CPUGraph = path;
-  });
-
-  setInterval(() => socket.emit('getInfo'), Options.pollingRate); //Ping socket to get info every second
-
-  socket.on('getInfo', (info) => {
-    // Example output: {"platform":"win32","freemem":15500861440,"totalmem":25718337536,"uptime":138367,"cpuUsage":0.032344114704901616}
-    $('#uptime').text(secondsToHMS(info.uptime));
-    $('#totalmem').text(formatBytes(info.totalmem));
-    $('#usedmem').text(formatBytes((info.totalmem - info.freemem)));
-    $('#freemem').text(formatBytes(info.freemem));
-    $('#cpuUsage').text(Math.floor(info.cpuUsage * 100) + "%");
-
-    CPUUsageData.push(Math.floor(info.cpuUsage * 100));
-    if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
-    updateGraph(500, 100, CPUUsageData, CPUGraph, () => {
-      /**console.log("Updated CPU graph");**/ });
-
-    let formattedDrives = _(info.disks)
-      .groupBy('_mounted')
-      .map((value, key) => ({
-        drive: key,
-        capacity: _.sumBy(value, '_capacity')
-      })).value();
-
-    if ($('#disks').empty()) { //TODO make it live updating instead of only running if its empty
-      for (const disk of formattedDrives) {
-        $('#disks').append("<li>" + disk.drive + " " + disk.capacity);
-      }
-    }
-  });
-
   $("#serverAdd").submit((e) => {
     e.preventDefault(); //Prevent page refresh
 
     let Server = $('#m').val();
     if (isURL(Server)) {
-      Servers.push(Server);
-      localStorage.setItem('Servers', JSON.stringify(Servers));
-      createServer(Server);
+      if (!Server.match(/\:\d+$/)) //Add the default port of 9000 if no port is specified
+        Server = Server + ":9000";
+      if (Servers.includes(Server))
+        alert("That server is already included");
+      else {
+        Servers.push(Server);
+        localStorage.setItem('Servers', JSON.stringify(Servers));
+        createServer(Server);
+      }
     } else {
       alert(Server + " is not a valid URL");
     }
@@ -109,16 +78,31 @@ $(function() { //On page load
     Servers = [];
     for (let i = 1; i < AddedServers + 1; i++) {
       clearInterval(i - 1); //Clear the intervals that are updating graphs
-      $("#" + i).remove();
+      $("#" + (i + 1)).remove(); //Delete the divs holding the server info except for the main server
     }
   });
 });
 
 function createServer(Server) {
-  let Graph; //TODO: a way to not need these variables
+  let socket;
+
+  if (Server == "Current PC") {
+    socket = io();
+  } else {
+    socket = io(Server);
+  }
+
+  let Graph;
+  let GraphWidth = 500;
+  let GraphHeight = 100;
   let CPUUsageData = [];
   AddedServers++;
   const CurrentServer = AddedServers;
+
+  if(/Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
+    GraphWidth = 300;
+    GraphHeight = 60;
+  }
 
   $("#row").append("<div id='" + AddedServers + "' class='col-md-6 mt-2'></div>");
   $("#" + AddedServers).append("<h3>" + Server + "</h3>");
@@ -128,15 +112,13 @@ function createServer(Server) {
   $("#" + AddedServers).append("<p>Free Memory: <span id='freemem" + AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<p class='dropdown-toggle' id='disksdropdown" + AddedServers + "' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>Disks: <ul class='dropdown-menu' aria-labelledby='disksdropdown" + AddedServers + "' id='disks" + AddedServers + "'></ul></p>")
   $("#" + AddedServers).append("<p>CPU Usage: <span id='cpuUsage" + AddedServers + "'></span></p>");
-
   $("#" + AddedServers).append("<svg id='cpuChart" + AddedServers + "'></svg>");
 
-  createGraph("#cpuChart" + AddedServers, 100, 500, 500, 100, (path) => { //create a graph with a height of 100, a width of 500, a xmax of 500, and a ymax of 100
+  createGraph("#cpuChart" + AddedServers, GraphWidth, GraphHeight, GraphWidth, GraphHeight, (path) => { //create a graph with a height of 100, a width of 500, a xmax of 500, and a ymax of 100
     console.log("Created CPU graph for " + Server);
     Graph = path;
   });
 
-  let socket = io('http://' + Server);
   setInterval(() => socket.emit('getInfo'), Options.pollingRate);
 
   socket.on('getInfo', (data) => {
@@ -148,8 +130,9 @@ function createServer(Server) {
 
     CPUUsageData.push(Math.floor(data.cpuUsage * 100));
     if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
-    updateGraph(500, 100, CPUUsageData, Graph, () => {
-      /**console.log("Updated CPU graph for " + Server);**/ });
+    updateGraph(GraphWidth, GraphHeight, CPUUsageData, Graph, () => {
+      /**console.log("Updated CPU graph for " + Server);**/
+    });
 
     let formattedDrives = _(data.disks)
       .groupBy('_mounted')
@@ -166,7 +149,14 @@ function createServer(Server) {
   });
 }
 
-function createGraph(graph, height, width, xmax, ymax, callback) {
+function deleteServer(server, ID) {
+  $("#" + ID).remove(); //Delete the div holding the server info. Note the getinfo call will keep running till page reload, TODO fix this
+  Servers = Servers.filter(item => item !== server); //Remove the server from the array
+  localStorage.setItem('Servers', JSON.stringify(Servers)); //Update local storage
+  console.log("Deleted Server " + server + " with ID " + ID);
+}
+
+function createGraph(graph, width, height, xmax, ymax, callback) {
   let chart = d3.select(graph)
     .attr('width', width + 50)
     .attr('height', height + 10);
@@ -238,9 +228,8 @@ function createGraph(graph, height, width, xmax, ymax, callback) {
     .attr('class', 'grid')
     .attr('d', line);
 
-  let path = chart.append('path');
   if (typeof callback == "function")
-    callback(path);
+    callback(chart.append('path')); //the line on the graph
 }
 
 function updateGraph(xmax, ymax, data, path, callback) {
@@ -288,7 +277,7 @@ function formatBytes(bytes, decimals = 2) {
 }
 
 function isURL(str) {
-  var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+  let pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
     '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
     '((\\d{1,3}\\.){3}\\d{1,3}))|' + // OR ip (v4) address
     '([a-f0-9:]+:+)+[a-f0-9]+|' + // OR ip (v6) address

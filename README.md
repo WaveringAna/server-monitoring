@@ -21,7 +21,7 @@ config.json is the configuration file.
 Run
 -------------
 ```bash
-npm start
+node index.js
 ```
 
 API

@@ -61,7 +61,7 @@ if (config.apiEnabled == true) {
 }
 
 function getInfo(callback) {
-  if (verbose) logging("GetInfo", "debug", "getInfo has been called");
+  if (verbose) logging("getInfo", "debug", "getInfo has been called");
 
   let t0 = present();
   let info = {
@@ -70,7 +70,7 @@ function getInfo(callback) {
     totalmem: os.totalmem(),
     uptime: os.uptime(),
     cpuUsage: null,
-    disks: os.diskInfoSync(),
+    disks: null,
     gpuInfo: null
   }
 
@@ -86,10 +86,16 @@ function getInfo(callback) {
         else if (info.includes("stderr")) cback(info, null);
         else cback(null, info);
       })
+    },
+    (cback) => {
+      os.diskInfo((info) => {
+        if (info.includes("error")) cback(info, null);
+        else cback(null, info)
+      })
     }
   ], (err, results) => {
     if (err) {
-      logging("GetInfo", "error", "Error getting info: " + err)
+      logging("getInfo", "error", "Error getting info: " + err)
       if (typeof callback == "function")
         callback(info);
       else
@@ -98,15 +104,19 @@ function getInfo(callback) {
 
     info.cpuUsage = results[0];
     //info.gpuInfo = results[1];
+    info.disks = results[2];
     if (typeof callback == "function")
       callback(info);
     else
       return info;
 
+    let t1 = present();
+
+    if ((t1 - t0) > 2000) logging("getInfo", "warning", "getInfo call is taking unusually long; it took " + (t1 - t0) + " milliseconds to execute");
+
     if (verbose) {
-      let t1 = present();
-      logging("GetInfo", "debug", "getInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 1 second
-      logging("GetInfo", "debug", JSON.stringify(info));
+      logging("getInfo", "debug", "getInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 1 second
+      logging("getInfo", "debug", JSON.stringify(info));
     }
   })
 }

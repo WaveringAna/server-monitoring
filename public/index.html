@@ -17,12 +17,15 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/css/bootstrap-slider.min.css" integrity="sha512-3q8fi8M0VS+X/3n64Ndpp6Bit7oXSiyCnzmlx6IDBLGlY5euFySyJ46RUlqIVs0DPCGOypqP8IRk/EyPvU28mQ=="
     crossorigin="anonymous" />
   <link rel="stylesheet" href="style.css">
+  <meta content="width=device-width; initial-scale=1.0; maximum-scale=1.0;  user-scalable=0;" name="viewport">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
 </head>
 
 <body>
   <div class="wrapper">
-    <nav class="navbar-custom pt-4 px-5 bg-dark" style="min-height: calc(100vh);">
-      <div class="app-search dropdown d-none d-lg-block">
+    <nav class="navbar-custom bg-dark" style="min-height: calc(100vh);">
+      <div class="container app-search dropdown d-none d-lg-block">
+        <br>
         <form action="#" id="serverAdd">
           <div class="input-group py-1">
             <input action="#" id="m" autocomplete="off" class="form-control dropdown-toggle" type="text" placeholder="Add server..." />
@@ -49,18 +52,18 @@
       </div>
     </nav>
     <div class="row pl-5" id="row">
-      <div class="col-md-6 mt-2">
+      <!--<div class="col-md-6 mt-2">                                      Example of info
         <h3>Current PC</h3>
         <p>Uptime: <span id="uptime"></span></p>
         <p>Total Memory: <span id="totalmem"></span></p>
         <p>Used Memory: <span id="usedmem"></span></p>
         <p>Free Memory: <span id="freemem"></span></p>
-        <a class="dropdown-toggle" id="disksdropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Disks:
+        <p class="dropdown-toggle" id="disksdropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Disks:
           <ul class="dropdown-menu" aria-labelledby="disksdropdown" id="disks"></ul>
-        </a>
+        </p>
         <p>CPU Usage: <span id="cpuUsage"></span></p>
         <svg id="cpuChart"></svg>
-      </div>
+      </div>!-->
     </div>
   </div>
 </body>
