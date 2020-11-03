@@ -6,7 +6,7 @@ let Options = {
   dataPoints: 50
 };
 
-$(function () { //On page load
+$(function() { //On page load
   let socket = io();
 
   let CPUUsageData = []; //TODO: a way to not need these variables
@@ -26,10 +26,12 @@ $(function () { //On page load
     ticks: [100, 500, 1000, 1500, 2000],
     ticks_snap_bounds: 30
   }).slider('setValue', Options.pollingRate);
+
   $("#dataPoints").slider({
     ticks: [50, 100, 150, 200, 250],
     ticks_snap_bounds: 30
   }).slider('setValue', Options.dataPoints);
+
   $("#pollingRateVal").text(Options.pollingRate);
   $("#dataPointsVal").text(Options.dataPoints);
 
@@ -54,7 +56,7 @@ $(function () { //On page load
 
   //console.log(JSON.parse(localStorage.getItem('Servers')));
 
-  createGraph('#cpuChart', 100, 500, 500, 100, (path)=> {
+  createGraph('#cpuChart', 100, 500, 500, 100, (path) => {
     console.log("Created CPU graph");
     CPUGraph = path;
   });
@@ -65,13 +67,14 @@ $(function () { //On page load
     // Example output: {"platform":"win32","freemem":15500861440,"totalmem":25718337536,"uptime":138367,"cpuUsage":0.032344114704901616}
     $('#uptime').text(secondsToHMS(info.uptime));
     $('#totalmem').text(formatBytes(info.totalmem));
-    $('#usedmem').text(formatBytes( (info.totalmem - info.freemem) ));
+    $('#usedmem').text(formatBytes((info.totalmem - info.freemem)));
     $('#freemem').text(formatBytes(info.freemem));
     $('#cpuUsage').text(Math.floor(info.cpuUsage * 100) + "%");
 
     CPUUsageData.push(Math.floor(info.cpuUsage * 100));
     if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
-    updateGraph(500, 100, CPUUsageData, CPUGraph, ()=>{ /**console.log("Updated CPU graph");**/  });
+    updateGraph(500, 100, CPUUsageData, CPUGraph, () => {
+      /**console.log("Updated CPU graph");**/ });
 
     let formattedDrives = _(info.disks)
       .groupBy('_mounted')
@@ -118,17 +121,17 @@ function createServer(Server) {
   const CurrentServer = AddedServers;
 
   $("#row").append("<div id='" + AddedServers + "' class='col-md-6 mt-2'></div>");
-  $("#" + AddedServers).append("<h3>"+ Server +"</h3>");
+  $("#" + AddedServers).append("<h3>" + Server + "</h3>");
   $("#" + AddedServers).append("<p>Uptime: <span id='uptime" + AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<p>Total Memory: <span id='totalmem" + AddedServers + "'></span></p>");
-  $("#" + AddedServers).append("<p>Used Memory: <span id='usedmem"  +AddedServers + "'></span></p>");
+  $("#" + AddedServers).append("<p>Used Memory: <span id='usedmem" + AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<p>Free Memory: <span id='freemem" + AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<p class='dropdown-toggle' id='disksdropdown" + AddedServers + "' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>Disks: <ul class='dropdown-menu' aria-labelledby='disksdropdown" + AddedServers + "' id='disks" + AddedServers + "'></ul></p>")
   $("#" + AddedServers).append("<p>CPU Usage: <span id='cpuUsage" + AddedServers + "'></span></p>");
 
   $("#" + AddedServers).append("<svg id='cpuChart" + AddedServers + "'></svg>");
 
-  createGraph("#cpuChart" + AddedServers, 100, 500, 500, 100, (path) => {
+  createGraph("#cpuChart" + AddedServers, 100, 500, 500, 100, (path) => { //create a graph with a height of 100, a width of 500, a xmax of 500, and a ymax of 100
     console.log("Created CPU graph for " + Server);
     Graph = path;
   });
@@ -141,11 +144,12 @@ function createServer(Server) {
     $("#totalmem" + CurrentServer).text(formatBytes(data.totalmem));
     $("#usedmem" + CurrentServer).text(formatBytes((data.totalmem - data.freemem)));
     $("#freemem" + CurrentServer).text(formatBytes(data.freemem));
-    $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage * 100) +"%");
+    $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage * 100) + "%");
 
     CPUUsageData.push(Math.floor(data.cpuUsage * 100));
     if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
-    updateGraph(500, 100, CPUUsageData, Graph, ()=>{ /**console.log("Updated CPU graph for " + Server);**/ });
+    updateGraph(500, 100, CPUUsageData, Graph, () => {
+      /**console.log("Updated CPU graph for " + Server);**/ });
 
     let formattedDrives = _(data.disks)
       .groupBy('_mounted')
@@ -164,35 +168,75 @@ function createServer(Server) {
 
 function createGraph(graph, height, width, xmax, ymax, callback) {
   let chart = d3.select(graph)
-  .attr('width', width + 50)
-  .attr('height', height + 10);
+    .attr('width', width + 50)
+    .attr('height', height + 10);
 
   let x = d3.scaleLinear().domain([0, xmax]).range([0, xmax]);
   let y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
 
   let line = d3.line()
-  .x(function(d){ return x(d.x); })
-  .y(function(d){ return y(d.y); });
+    .x(function(d) {
+      return x(d.x);
+    })
+    .y(function(d) {
+      return y(d.y);
+    });
 
   // Draw the grid
-  chart.append('path').datum([{x: 0, y: 150}, {x: 500, y: 150}])
-  .attr('class', 'grid')
-  .attr('d', line);
-  chart.append('path').datum([{x: 0, y: 300}, {x: 500, y: 300}])
-  .attr('class', 'grid')
-  .attr('d', line);
-  chart.append('path').datum([{x: 0, y: 450}, {x: 500, y: 450}])
-  .attr('class', 'grid')
-  .attr('d', line);
-  chart.append('path').datum([{x: 50, y: 0}, {x: 50, y: 500}])
-  .attr('class', 'grid')
-  .attr('d', line);
-  chart.append('path').datum([{x: 250, y: 0}, {x: 250, y: 500}])
-  .attr('class', 'grid')
-  .attr('d', line);
-  chart.append('path').datum([{x: 450, y: 0}, {x: 450, y: 500}])
-  .attr('class', 'grid')
-  .attr('d', line);
+  chart.append('path').datum([{
+      x: 0,
+      y: 150
+    }, {
+      x: 500,
+      y: 150
+    }])
+    .attr('class', 'grid')
+    .attr('d', line);
+  chart.append('path').datum([{
+      x: 0,
+      y: 300
+    }, {
+      x: 500,
+      y: 300
+    }])
+    .attr('class', 'grid')
+    .attr('d', line);
+  chart.append('path').datum([{
+      x: 0,
+      y: 450
+    }, {
+      x: 500,
+      y: 450
+    }])
+    .attr('class', 'grid')
+    .attr('d', line);
+  chart.append('path').datum([{
+      x: 50,
+      y: 0
+    }, {
+      x: 50,
+      y: 500
+    }])
+    .attr('class', 'grid')
+    .attr('d', line);
+  chart.append('path').datum([{
+      x: 250,
+      y: 0
+    }, {
+      x: 250,
+      y: 500
+    }])
+    .attr('class', 'grid')
+    .attr('d', line);
+  chart.append('path').datum([{
+      x: 450,
+      y: 0
+    }, {
+      x: 450,
+      y: 500
+    }])
+    .attr('class', 'grid')
+    .attr('d', line);
 
   let path = chart.append('path');
   if (typeof callback == "function")
@@ -204,18 +248,22 @@ function updateGraph(xmax, ymax, data, path, callback) {
   let y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
 
   let smoothLine = d3.line().curve(d3.curveCardinal)
-  .x((d, i) => { return x(i); })
-  .y((d) => { return y(d); });
+    .x((d, i) => {
+      return x(i);
+    })
+    .y((d) => {
+      return y(d);
+    });
 
   path.datum(data)
-  .attr('class', 'smoothline')
-  .attr('d', smoothLine);
+    .attr('class', 'smoothline')
+    .attr('d', smoothLine);
 
   if (typeof callback == "function")
     callback();
 }
 
-function secondsToHMS (t) {
+function secondsToHMS(t) {
   t = Number(t);
   let h = Math.floor(t / 3600);
   let m = Math.floor(t % 3600 / 60);
@@ -240,12 +288,13 @@ function formatBytes(bytes, decimals = 2) {
 }
 
 function isURL(str) {
-  var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
-    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
-    '((\\d{1,3}\\.){3}\\d{1,3}))|'+ // OR ip (v4) address
+  var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
+    '((\\d{1,3}\\.){3}\\d{1,3}))|' + // OR ip (v4) address
+    '([a-f0-9:]+:+)+[a-f0-9]+|' + // OR ip (v6) address
     '(localhost)' + // OR localhost
-    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-    '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-    '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+    '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+    '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
   return !!pattern.test(str);
 }

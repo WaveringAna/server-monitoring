@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
+
 <head>
   <meta charset="utf-8">
   <title>Server Monitoring</title>
@@ -13,16 +14,18 @@
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.20/lodash.min.js"></script>
   <script src="public.js"></script>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/css/bootstrap-slider.min.css" integrity="sha512-3q8fi8M0VS+X/3n64Ndpp6Bit7oXSiyCnzmlx6IDBLGlY5euFySyJ46RUlqIVs0DPCGOypqP8IRk/EyPvU28mQ==" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/css/bootstrap-slider.min.css" integrity="sha512-3q8fi8M0VS+X/3n64Ndpp6Bit7oXSiyCnzmlx6IDBLGlY5euFySyJ46RUlqIVs0DPCGOypqP8IRk/EyPvU28mQ=="
+    crossorigin="anonymous" />
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <div class="wrapper">
     <nav class="navbar-custom pt-4 px-5 bg-dark" style="min-height: calc(100vh);">
       <div class="app-search dropdown d-none d-lg-block">
         <form action="#" id="serverAdd">
           <div class="input-group py-1">
-            <input action="#" id="m" autocomplete="off" class="form-control dropdown-toggle" type="text" placeholder="Add server..."/>
+            <input action="#" id="m" autocomplete="off" class="form-control dropdown-toggle" type="text" placeholder="Add server..." />
             <div class="input-group-append"><button class="btn btn-primary">Add</button></div>
           </div>
         </form>
@@ -35,9 +38,9 @@
               Monitoring Options
             </button>
             <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-              <input id="pollingRate" type="text" data-slider-min="100" data-slider-max="2000" data-slider-step="1" data-slider-ticks="[100, 500, 1000, 1500, 2000]"/>
+              <input id="pollingRate" type="text" data-slider-min="100" data-slider-max="2000" data-slider-step="1" data-slider-ticks="[100, 500, 1000, 1500, 2000]" />
               <span id="pollingRateValLabel" class="dropdown-item">Polling Rate: <span id="pollingRateVal"></span>ms</span>
-              <input id="dataPoints" type="text" data-slider-min="50" data-slider-max="250" data-slider-step="1" data-slider-ticks="[50, 100, 150, 200, 250]"/>
+              <input id="dataPoints" type="text" data-slider-min="50" data-slider-max="250" data-slider-step="1" data-slider-ticks="[50, 100, 150, 200, 250]" />
               <span id="dataPointsValLabel" class="dropdown-item">Amount of Datapoints: <span id="dataPointsVal"></span></span>
               <p class="dropdown-item">Changes take place after refresh</p>
             </div>
@@ -52,13 +55,14 @@
         <p>Total Memory: <span id="totalmem"></span></p>
         <p>Used Memory: <span id="usedmem"></span></p>
         <p>Free Memory: <span id="freemem"></span></p>
-        <p class="dropdown-toggle" id="disksdropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Disks:
+        <a class="dropdown-toggle" id="disksdropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Disks:
           <ul class="dropdown-menu" aria-labelledby="disksdropdown" id="disks"></ul>
-        </p>
+        </a>
         <p>CPU Usage: <span id="cpuUsage"></span></p>
         <svg id="cpuChart"></svg>
       </div>
     </div>
   </div>
 </body>
+
 </html>

@@ -3,6 +3,6 @@
   "webPort": 9000,
   "apiPort": 9001,
   "apiEnabled": false,
-  "logging": "normal",
+  "logging": "verbose",
   "_comment": "logging options: none, normal, verbose"
 }

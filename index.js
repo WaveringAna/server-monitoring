@@ -2,10 +2,14 @@ const http = require('http');
 const present = require('present');
 const app = require('express')();
 const cors = require('cors');
+const async = require('async');
 
 const config = require('./config.json');
 const os = require('./lib/monitoring-utils.js');
-const logging = require('./lib/logging.js')
+const logging = require('./lib/logging.js');
+
+let verbose = false;
+if (config.logging == "verbose") verbose = true;
 
 const WebServer = http.createServer(app).listen(config.webPort, (error) => {
   if (error)
@@ -51,11 +55,14 @@ if (config.apiEnabled == true) {
   }).listen(config.apiPort, (error) => {
     if (error)
       return console.error(error);
-    console.log("Api Server listening on " + config.apiPort);
+    if (config.debug != "none")
+      logging("ApiServer", "special", "Api Server listening on " + config.apiPort);
   });
 }
 
 function getInfo(callback) {
+  if (verbose) logging("GetInfo", "debug", "getInfo has been called");
+
   let t0 = present();
   let info = {
     platform: os.platform(),
@@ -63,17 +70,43 @@ function getInfo(callback) {
     totalmem: os.totalmem(),
     uptime: os.uptime(),
     cpuUsage: null,
-    disks: os.diskInfoSync()
+    disks: os.diskInfoSync(),
+    gpuInfo: null
   }
 
-  os.cpuUsage((v) => {
-    info.cpuUsage = v;
+  async.parallel([
+    (cback) => {
+      os.cpuUsage((usage) => {
+        cback(null, usage)
+      })
+    },
+    (cback) => {
+      os.gpuInfo((info) => {
+        if (info.includes("error")) cback(info, null);
+        else if (info.includes("stderr")) cback(info, null);
+        else cback(null, info);
+      })
+    }
+  ], (err, results) => {
+    if (err) {
+      logging("GetInfo", "error", "Error getting info: " + err)
+      if (typeof callback == "function")
+        callback(info);
+      else
+        return info;
+    }
+
+    info.cpuUsage = results[0];
+    //info.gpuInfo = results[1];
     if (typeof callback == "function")
       callback(info);
+    else
+      return info;
 
-    if (config.logging == "verbose") {
+    if (verbose) {
       let t1 = present();
       logging("GetInfo", "debug", "getInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 1 second
+      logging("GetInfo", "debug", JSON.stringify(info));
     }
-  });
+  })
 }
