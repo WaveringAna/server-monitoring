@@ -126,9 +126,9 @@ function createServer(Server) {
     $("#totalmem" + CurrentServer).text(formatBytes(data.totalmem));
     $("#usedmem" + CurrentServer).text(formatBytes((data.totalmem - data.freemem)));
     $("#freemem" + CurrentServer).text(formatBytes(data.freemem));
-    $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage * 100) + "%");
+    $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage.currentload) + "%");
 
-    CPUUsageData.push(Math.floor(data.cpuUsage * 100));
+    CPUUsageData.push(Math.floor(data.cpuUsage.currentload));
     if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
     updateGraph(GraphWidth, GraphHeight, CPUUsageData, Graph, () => {
       /**console.log("Updated CPU graph for " + Server);**/

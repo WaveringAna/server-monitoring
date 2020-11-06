@@ -1,11 +1,12 @@
 const http = require('http');
+const os = require('os');
 const present = require('present');
 const app = require('express')();
 const cors = require('cors');
-const async = require('async');
+const si = require('systeminformation');
+const nodeDiskInfo = require('node-disk-info');
 
 const config = require('./config.json');
-const os = require('./lib/monitoring-utils.js');
 const logging = require('./lib/logging.js');
 
 let verbose = false;
@@ -36,9 +37,9 @@ app.get('/style.css', (req, res) => {
 
 io.on('connection', (socket) => {
   socket.on('getInfo', () => {
-    getInfo((info) => {
+    getInfo().then((info) => {
       io.emit('getInfo', info);
-    });
+    })
   });
 });
 
@@ -54,69 +55,35 @@ if (config.apiEnabled == true) {
     });
   }).listen(config.apiPort, (error) => {
     if (error)
-      return console.error(error);
+      return logging("ApiServer", "error", error);
     if (config.debug != "none")
       logging("ApiServer", "special", "Api Server listening on " + config.apiPort);
   });
 }
 
-function getInfo(callback) {
+async function getInfo(callback) {
   if (verbose) logging("getInfo", "debug", "getInfo has been called");
 
   let t0 = present();
   let info = {
     platform: os.platform(),
-    freemem: os.freemem(),
+    freemem:  os.freemem(),
     totalmem: os.totalmem(),
-    uptime: os.uptime(),
-    cpuUsage: null,
-    disks: null,
-    gpuInfo: null
+    uptime:   os.uptime(),
+    cpuUsage: await si.currentLoad(),
+    disks:    await nodeDiskInfo.getDiskInfo()
+  };
+
+  let t1 = present();
+  if ((t1 - t0) > 2000) logging("getInfo", "warning", "getInfo call is taking unusually long; it took " + (t1 - t0) + " milliseconds to execute");
+
+  if (verbose) {
+    logging("getInfo", "debug", "getInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 100-1000 ms
+    logging("getInfo", "debug", JSON.stringify(info));
   }
 
-  async.parallel([
-    (cback) => {
-      os.cpuUsage((usage) => {
-        cback(null, usage)
-      })
-    },
-    (cback) => {
-      os.gpuInfo((info) => {
-        if (info.includes("error")) cback(info, null);
-        else if (info.includes("stderr")) cback(info, null);
-        else cback(null, info);
-      })
-    },
-    (cback) => {
-      os.diskInfo((info) => {
-        if (info.includes("error")) cback(info, null);
-        else cback(null, info)
-      })
-    }
-  ], (err, results) => {
-    if (err) {
-      logging("getInfo", "error", "Error getting info: " + err)
-      if (typeof callback == "function")
-        callback(info);
-      else
-        return info;
-    }
-
-    info.cpuUsage = results[0];
-    //info.gpuInfo = results[1];
-    info.disks = results[2];
-    if (typeof callback == "function")
-      callback(info);
-    else
-      return info;
-
-    let t1 = present();
-
-    if ((t1 - t0) > 2000) logging("getInfo", "warning", "getInfo call is taking unusually long; it took " + (t1 - t0) + " milliseconds to execute");
-
-    if (verbose) {
-      logging("getInfo", "debug", "getInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 1 second
-      logging("getInfo", "debug", JSON.stringify(info));
-    }
-  })
+  if (typeof callback == "function")
+    callback(info);
+  else
+    return info;
 }
