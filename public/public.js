@@ -1,3 +1,4 @@
+let Version = "0.1"; //Update if getInfo returns new info
 let Servers = [];
 let AddedServers = 0;
 
@@ -7,7 +8,6 @@ let Options = {
 };
 
 $(function() { //On page load
-
   createServer("Current PC")
   if (localStorage.getItem('PollingRate') !== null) {
     Options.pollingRate = localStorage.getItem('PollingRate');
@@ -95,17 +95,17 @@ function createServer(Server) {
   let Graph;
   let GraphWidth = 500;
   let GraphHeight = 100;
-  let CPUUsageData = [];
   AddedServers++;
   const CurrentServer = AddedServers;
 
-  if(/Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent)) {
     GraphWidth = 300;
     GraphHeight = 60;
   }
 
   $("#row").append("<div id='" + AddedServers + "' class='col-md-6 mt-2'></div>");
-  $("#" + AddedServers).append("<h3>" + Server + "</h3>");
+  $("#" + AddedServers).append("<h3 id='serverid" + AddedServers + "'>" + Server + "</h3>");
+  $("#" + AddedServers).append("<p class='outdatedWarning'>This server is running an outdated tracker and could give unexpected results</p>")
   $("#" + AddedServers).append("<p>Uptime: <span id='uptime" + AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<p>Total Memory: <span id='totalmem" + AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<p>Used Memory: <span id='usedmem" + AddedServers + "'></span></p>");
@@ -113,26 +113,64 @@ function createServer(Server) {
   $("#" + AddedServers).append("<p class='dropdown-toggle' id='disksdropdown" + AddedServers + "' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>Disks: <ul class='dropdown-menu' aria-labelledby='disksdropdown" + AddedServers + "' id='disks" + AddedServers + "'></ul></p>")
   $("#" + AddedServers).append("<p>CPU Usage: <span id='cpuUsage" + AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<svg id='cpuChart" + AddedServers + "'></svg>");
+  $("#" + AddedServers).append("<p>Core Performance: ")
+  $("#" + AddedServers).append("<div id='coreCharts" + AddedServers + "'>")
 
-  createGraph("#cpuChart" + AddedServers, GraphWidth, GraphHeight, GraphWidth, GraphHeight, (path) => { //create a graph with a height of 100, a width of 500, a xmax of 500, and a ymax of 100
+  createAvgUsageGraph("#cpuChart" + AddedServers, GraphWidth, GraphHeight, GraphWidth, GraphHeight, (path) => { //create a graph with a height of 100, a width of 500, a xmax of 500, and a ymax of 100
     console.log("Created CPU graph for " + Server);
     Graph = path;
   });
 
   setInterval(() => socket.emit('getInfo'), Options.pollingRate);
 
+  let cpuAvgUsageData = [];
+  let coreGraphs = [];
+  let coreAvgUsageData = [];
+
   socket.on('getInfo', (data) => {
+    //console.log(Server + ": " + JSON.stringify(data));
+    if (Version != data.serverVer) {
+      $("#serverid" + CurrentServer).addClass("outdated")
+    }
     $("#uptime" + CurrentServer).text(secondsToHMS(data.uptime));
     $("#totalmem" + CurrentServer).text(formatBytes(data.totalmem));
     $("#usedmem" + CurrentServer).text(formatBytes((data.totalmem - data.freemem)));
     $("#freemem" + CurrentServer).text(formatBytes(data.freemem));
     $("#cpuUsage" + CurrentServer).text(Math.floor(data.cpuUsage.currentload) + "%");
 
-    CPUUsageData.push(Math.floor(data.cpuUsage.currentload));
-    if (CPUUsageData.length > Options.dataPoints) CPUUsageData.shift();
-    updateGraph(GraphWidth, GraphHeight, CPUUsageData, Graph, () => {
+    cpuAvgUsageData.push(Math.floor(data.cpuUsage.currentload));
+    if (cpuAvgUsageData.length > Options.dataPoints) cpuAvgUsageData.shift();
+    updateAvgUsageGraph(GraphWidth, GraphHeight, cpuAvgUsageData, Graph, () => {
       /**console.log("Updated CPU graph for " + Server);**/
     });
+
+    //Theres definitely a much better way to write the following code lol
+    if (isEmpty($('#coreCharts' + CurrentServer))) {
+      for (let [i, cpu] of data.cpuUsage.cpus.entries()) {
+        $("#coreCharts" + CurrentServer).append("<p><span id='coreUsage" + CurrentServer + "-" + i + "'></span></p>");
+        $("#coreCharts" + CurrentServer).append("<svg id='coreChart" + CurrentServer + "-" + i + "'></svg></p>");
+        createAvgUsageGraph("#coreChart" + CurrentServer + "-" + i, GraphWidth, GraphHeight, GraphWidth, GraphHeight, (path) => {
+          console.log("Created Core graph for " + Server + " and core " + i);
+          coreGraphs.push(path);
+        });
+      }
+    }
+
+    if (jQuery.isEmptyObject(coreAvgUsageData)) {
+      for (const cpu of data.cpuUsage.cpus) {
+        coreAvgUsageData.push([])
+      }
+    }
+
+    for (let [i, cpu] of data.cpuUsage.cpus.entries()) {
+      coreAvgUsageData[i].push(Math.floor(cpu.load));
+      $("coreUsage" + CurrentServer + "-" + i).text(Math.floor(cpu.load));
+      if (coreAvgUsageData[i].length > Options.dataPoints) coreAvgUsageData[i].shift();
+
+      updateAvgUsageGraph(GraphWidth, GraphHeight, coreAvgUsageData[i], coreGraphs[i], () => {
+        //console.log("Updated CPU graph for " + Server + " and core " + i);
+      });
+    }
 
     let formattedDrives = _(data.disks)
       .groupBy('_mounted')
@@ -141,10 +179,9 @@ function createServer(Server) {
         capacity: _.sumBy(value, '_capacity')
       })).value();
 
-    if ($('#disks' + CurrentServer).empty()) { //TODO make it live updating instead of only running if its empty
-      for (const disk of formattedDrives) {
-        $('#disks' + CurrentServer).append("<li>" + disk.drive + " " + disk.capacity);
-      }
+    $('#disks' + CurrentServer).empty()
+    for (const disk of formattedDrives) {
+      $('#disks' + CurrentServer).append("<li>" + disk.drive + " " + disk.capacity);
     }
   });
 }
@@ -156,7 +193,7 @@ function deleteServer(server, ID) {
   console.log("Deleted Server " + server + " with ID " + ID);
 }
 
-function createGraph(graph, width, height, xmax, ymax, callback) {
+function createAvgUsageGraph(graph, width, height, xmax, ymax, callback) {
   let chart = d3.select(graph)
     .attr('width', width + 50)
     .attr('height', height + 10);
@@ -232,7 +269,7 @@ function createGraph(graph, width, height, xmax, ymax, callback) {
     callback(chart.append('path')); //the line on the graph
 }
 
-function updateGraph(xmax, ymax, data, path, callback) {
+function updateAvgUsageGraph(xmax, ymax, data, path, callback) {
   let x = d3.scaleLinear().domain([0, data.length]).range([0, xmax]);
   let y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
 
@@ -259,8 +296,13 @@ function secondsToHMS(t) {
   let s = Math.floor(t % 3600 % 60);
 
   let hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hours, ") : "";
-  let mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes, ") : "";
+  let mDisplay;
+  if (s == 0)
+    mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes ") : "";
+  else
+    mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes, ") : "";
   let sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
+
   return hDisplay + mDisplay + sDisplay;
 }
 
@@ -286,4 +328,8 @@ function isURL(str) {
     '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
     '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
   return !!pattern.test(str);
+}
+
+function isEmpty(el) {
+  return !$.trim(el.html())
 }

@@ -21,6 +21,19 @@
   align-items: stretch;
 }
 
+.outdated {
+  color: #cc3300;
+}
+
+.outdatedWarning {
+  display: none;
+}
+
+.outdated:hover + .outdatedWarning {
+  display: block;
+  color: red;
+}
+
 body {}
 
 li {
