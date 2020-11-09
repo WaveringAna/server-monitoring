@@ -1,17 +1,21 @@
-const Version = "0.1"; //Update if getInfo returns new info
-let Verbose = false;
-if (config.logging == "verbose") Verbose = true;
-
 const http = require('http');
 const os = require('os');
 const present = require('present');
-const app = require('express')();
+const express = require('express');
 const cors = require('cors');
 const si = require('systeminformation');
 const nodeDiskInfo = require('node-disk-info');
 
 const config = require('./config.json');
 const logging = require('./lib/logging.js');
+
+const Version = "0.1"; //Update if getInfo returns new info
+let Verbose = false;
+if (config.logging == "verbose") Verbose = true;
+
+const app = express();
+app.use(cors());
+app.use(express.static('public'));
 
 const WebServer = http.createServer(app).listen(config.webPort, (error) => {
   let t0 = present();
@@ -22,20 +26,6 @@ const WebServer = http.createServer(app).listen(config.webPort, (error) => {
     logging("WebServer", "special", "WebServer is now running at port " + config.webPort + " and took " + (present() - t0).toFixed(2) + " milliseconds to start");
 });
 const io = require('socket.io')(WebServer);
-
-app.use(cors());
-
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
-});
-
-app.get('/public.js', (req, res) => {
-  res.sendFile(__dirname + '/public/public.js');
-});
-
-app.get('/style.css', (req, res) => {
-  res.sendFile(__dirname + '/public/style.css');
-});
 
 io.on('connection', (socket) => {
   socket.on('getInfo', () => {

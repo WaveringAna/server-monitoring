@@ -77,7 +77,6 @@ $(function() { //On page load
     localStorage.clear()
     Servers = [];
     for (let i = 1; i < AddedServers + 1; i++) {
-      clearInterval(i - 1); //Clear the intervals that are updating graphs
       $("#" + (i + 1)).remove(); //Delete the divs holding the server info except for the main server
     }
   });
@@ -104,7 +103,10 @@ function createServer(Server) {
   }
 
   $("#row").append("<div id='" + AddedServers + "' class='col-md-6 mt-2'></div>");
-  $("#" + AddedServers).append("<h3 id='serverid" + AddedServers + "'>" + Server + "</h3>");
+  if (Server == "Current PC")
+    $("#" + AddedServers).append("<h3 id='serverid" + AddedServers + "'>" + Server + "</h3>");
+  else
+    $("#" + AddedServers).append("<h3 id='serverid" + AddedServers + "'>" + Server + "<img id='#del" + AddedServers + "' src='delete.png' /></h3>");
   $("#" + AddedServers).append("<p class='outdatedWarning'>This server is running an outdated tracker and could give unexpected results</p>")
   $("#" + AddedServers).append("<p>Uptime: <span id='uptime" + AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<p>Total Memory: <span id='totalmem" + AddedServers + "'></span></p>");
@@ -113,21 +115,25 @@ function createServer(Server) {
   $("#" + AddedServers).append("<p class='dropdown-toggle' id='disksdropdown" + AddedServers + "' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>Disks: <ul class='dropdown-menu' aria-labelledby='disksdropdown" + AddedServers + "' id='disks" + AddedServers + "'></ul></p>")
   $("#" + AddedServers).append("<p>CPU Usage: <span id='cpuUsage" + AddedServers + "'></span></p>");
   $("#" + AddedServers).append("<svg id='cpuChart" + AddedServers + "'></svg>");
-  $("#" + AddedServers).append("<p>Core Performance: ")
-  $("#" + AddedServers).append("<div id='coreCharts" + AddedServers + "'>")
+  $("#" + AddedServers).append("<p>Core Performance: ");
+  $("#" + AddedServers).append("<div id='coreCharts" + AddedServers + "'>");
+
+  if (Server != "Current PC")
+    $("#serverid" + AddedServers).click(() => { deleteServer(Server, AddedServers); });
 
   createAvgUsageGraph("#cpuChart" + AddedServers, GraphWidth, GraphHeight, GraphWidth, GraphHeight, (path) => { //create a graph with a height of 100, a width of 500, a xmax of 500, and a ymax of 100
     console.log("Created CPU graph for " + Server);
     Graph = path;
   });
 
-  setInterval(() => socket.emit('getInfo'), Options.pollingRate);
-
+  let interval = setInterval(() => socket.emit('getInfo'), Options.pollingRate);
   let cpuAvgUsageData = [];
   let coreGraphs = [];
   let coreAvgUsageData = [];
 
   socket.on('getInfo', (data) => {
+    if (isEmpty($("#" + CurrentServer))) //If the server div was deleted, clear the getinfo interval
+      clearInterval(interval);
     //console.log(Server + ": " + JSON.stringify(data));
     if (Version != data.serverVer) {
       $("#serverid" + CurrentServer).addClass("outdated")
@@ -187,7 +193,7 @@ function createServer(Server) {
 }
 
 function deleteServer(server, ID) {
-  $("#" + ID).remove(); //Delete the div holding the server info. Note the getinfo call will keep running till page reload, TODO fix this
+  $("#" + ID).remove(); //Delete the div holding the server info.
   Servers = Servers.filter(item => item !== server); //Remove the server from the array
   localStorage.setItem('Servers', JSON.stringify(Servers)); //Update local storage
   console.log("Deleted Server " + server + " with ID " + ID);
