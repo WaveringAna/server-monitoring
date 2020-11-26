@@ -31,7 +31,13 @@ io.on('connection', (socket) => {
   socket.on('getInfo', () => {
     getInfo().then((info) => {
       io.emit('getInfo', info);
-    })
+    });
+  });
+
+  socket.on('getProcessInfo', (service) => {
+    getProcessInfo(service).then((info) => {
+      io.emit('getProcessInfo', info);
+    });
   });
 });
 
@@ -53,7 +59,7 @@ if (config.apiEnabled == true) {
   });
 }
 
-async function getInfo(callback) {
+async function getInfo() {
   if (Verbose) logging("getInfo", "debug", "getInfo has been called");
 
   let t0 = present();
@@ -68,15 +74,29 @@ async function getInfo(callback) {
   };
 
   let t1 = present();
-  if ((t1 - t0) > 2000) logging("getInfo", "warning", "getInfo call is taking unusually long; it took " + (t1 - t0) + " milliseconds to execute");
+  if ((t1 - t0) > 2000) logging("getInfo", "warning", "A getInfo call took unusually long to execute and took " + (t1 - t0) + " milliseconds to execute");
 
   if (Verbose) {
     logging("getInfo", "debug", "getInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 100-1000 ms
     logging("getInfo", "debug", JSON.stringify(info));
   }
 
-  if (typeof callback == "function")
-    callback(info);
-  else
-    return info;
+  return info;
+}
+
+async function getProcessInfo(service) {
+  if (Verbose) logging("getProcessInfo", "debug", "getProcessInfo has been called");
+
+  let t0 = present();
+  let info = await si.services(service);
+
+  let t1 = present();
+  if ((t1 - t0) > 2000) logging("getProcessInfo", "warning", "A getProcessInfo call took unusually long to execute and took " + (t1 - t0) + " milliseconds to execute");
+
+  if (Verbose) {
+    logging("getProcessInfo", "debug", "getProcessInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 100-1000 ms
+    logging("getProcessInfo", "debug", JSON.stringify(info));
+  }
+
+  return info;
 }

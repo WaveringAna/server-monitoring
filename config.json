@@ -2,7 +2,7 @@
   "host": "0.0.0.0",
   "webPort": 9000,
   "apiPort": 9001,
-  "apiEnabled": false,
+  "apiEnabled": true,
   "logging": "normal",
   "_comment": "logging options: none, normal, verbose"
 }
