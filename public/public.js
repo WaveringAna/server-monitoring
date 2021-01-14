@@ -1,4 +1,4 @@
-let Version = "0.1"; //Update if getInfo returns new info
+const Version = "0.1"; //Update if getInfo returns new info
 let Servers = [];
 let Intervals = [];
 
@@ -79,9 +79,9 @@ $(function() { //On page load
 
   $("#serverDelete").submit((e) => {
     e.preventDefault();
-    localStorage.clear()
+    localStorage.clear();
     Servers = [];
-    for (runningInterval in Intervals) {
+    for (let runningInterval in Intervals) {
       const server = Intervals[runningInterval].server;
       const id = Intervals[runningInterval].id;
 
@@ -94,7 +94,7 @@ $(function() { //On page load
   });
 });
 
-function createServer(Server) {
+async function createServer(Server) {
   let socket;
 
   if (Server == "Current PC") {
@@ -107,19 +107,17 @@ function createServer(Server) {
     socket.emit('getInfo');
   }, Options.pollingRate);
 
-  let obj = {
+  Intervals.push({
     id: interval,
     server: Server
-  };
-
-  Intervals.push(obj);
+  });
 
   $("#row").append("<div id='" + interval + "' class='col-md-6 mt-2'></div>");
   if (Server == "Current PC")
     $("#" + interval).append("<h3 id='serverid" + interval + "'>" + Server + "</h3>");
   else
     $("#" + interval).append("<h3 id='serverid" + interval + "'>" + Server + "<img id='#del" + interval + "' src='delete.png' /></h3>");
-  $("#" + interval).append("<p class='outdatedWarning'>This server is running an outdated tracker and could give unexpected results</p>")
+  $("#" + interval).append("<p class='outdatedWarning'>This server is running an outdated tracker and could give unexpected results</p>");
   $("#" + interval).append("<p>Uptime: <span id='uptime" + interval + "'></span></p>");
   $("#" + interval).append("<p>Total Memory: <span id='totalmem" + interval + "'></span></p>");
   $("#" + interval).append("<p>Used Memory: <span id='usedmem" + interval + "'></span></p>");
@@ -142,16 +140,16 @@ function createServer(Server) {
     GraphHeight = 60;
   }
 
-  createAvgUsageGraph("#cpuChart" + interval, GraphWidth, GraphHeight, GraphWidth, GraphHeight, (path) => { //create a graph with a height of 100, a width of 500, a xmax of 500, and a ymax of 100
+  await createAvgUsageGraph("#cpuChart" + interval, GraphWidth, GraphHeight, GraphWidth, GraphHeight).then((path) => { //create a graph with a height of 100, a width of 500, a xmax of 500, and a ymax of 100
     console.log("Created CPU graph for " + Server);
     Graph = path;
-  });
+  })
 
   let cpuAvgUsageData = [];
   let coreGraphs = [];
   let coreAvgUsageData = [];
 
-  socket.on('getInfo', (data) => {
+  socket.on('getInfo', async (data) => {
     if (isEmpty($("#" + interval))) //If the server div was deleted, clear the getinfo interval
       clearInterval(interval);
     if (Version != data.serverVer) {
@@ -165,16 +163,14 @@ function createServer(Server) {
 
     cpuAvgUsageData.push(Math.floor(data.cpuUsage.currentload));
     if (cpuAvgUsageData.length > Options.dataPoints) cpuAvgUsageData.shift();
-    updateAvgUsageGraph(GraphWidth, GraphHeight, cpuAvgUsageData, Graph, () => {
-      //console.log("Updated CPU graph for " + Server);
-    });
+    updateAvgUsageGraph(GraphWidth, GraphHeight, cpuAvgUsageData, Graph);
 
     //Theres definitely a much better way to write the following code lol
     if (isEmpty($('#coreCharts' + interval))) {
       for (let [i, cpu] of data.cpuUsage.cpus.entries()) {
         $("#coreCharts" + interval).append("<p><span id='coreUsage" + interval + "-" + i + "'></span></p>");
         $("#coreCharts" + interval).append("<svg id='coreChart" + interval + "-" + i + "'></svg></p>");
-        createAvgUsageGraph("#coreChart" + interval + "-" + i, GraphWidth, GraphHeight, GraphWidth, GraphHeight, (path) => {
+        await createAvgUsageGraph("#coreChart" + interval + "-" + i, GraphWidth, GraphHeight, GraphWidth, GraphHeight).then((path) => {
           //console.log("Created Core graph for " + Server + " and core " + i);
           coreGraphs.push(path);
         });
@@ -192,9 +188,7 @@ function createServer(Server) {
       $("coreUsage" + interval + "-" + i).text(Math.floor(cpu.load));
       if (coreAvgUsageData[i].length > Options.dataPoints) coreAvgUsageData[i].shift();
 
-      updateAvgUsageGraph(GraphWidth, GraphHeight, coreAvgUsageData[i], coreGraphs[i], () => {
-        //console.log("Updated CPU graph for " + Server + " and core " + i);
-      });
+      updateAvgUsageGraph(GraphWidth, GraphHeight, coreAvgUsageData[i], coreGraphs[i]);
     }
 
     let formattedDrives = _(data.disks)
@@ -229,15 +223,15 @@ function refreshServers() {
   }
 }
 
-function createAvgUsageGraph(graph, width, height, xmax, ymax, callback) {
+async function createAvgUsageGraph(graph, width, height, xmax, ymax) {
   let chart = d3.select(graph)
     .attr('width', width + 50)
     .attr('height', height + 10);
 
-  let x = d3.scaleLinear().domain([0, xmax]).range([0, xmax]);
-  let y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
+  const x = d3.scaleLinear().domain([0, xmax]).range([0, xmax]);
+  const y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
 
-  let line = d3.line()
+  const line = d3.line()
     .x(function(d) {
       return x(d.x);
     })
@@ -301,15 +295,14 @@ function createAvgUsageGraph(graph, width, height, xmax, ymax, callback) {
     .attr('class', 'grid')
     .attr('d', line);
 
-  if (typeof callback == "function")
-    callback(chart.append('path')); //the line on the graph
+  return chart.append('path');
 }
 
-function updateAvgUsageGraph(xmax, ymax, data, path, callback) {
-  let x = d3.scaleLinear().domain([0, data.length]).range([0, xmax]);
-  let y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
+async function updateAvgUsageGraph(xmax, ymax, data, path) {
+  const x = d3.scaleLinear().domain([0, data.length]).range([0, xmax]);
+  const y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
 
-  let smoothLine = d3.line().curve(d3.curveCardinal)
+  const smoothLine = d3.line().curve(d3.curveCardinal)
     .x((d, i) => {
       return x(i);
     })
@@ -321,23 +314,22 @@ function updateAvgUsageGraph(xmax, ymax, data, path, callback) {
     .attr('class', 'smoothline')
     .attr('d', smoothLine);
 
-  if (typeof callback == "function")
-    callback();
+  return true;
 }
 
 function secondsToHMS(t) {
   t = Number(t);
-  let h = Math.floor(t / 3600);
-  let m = Math.floor(t % 3600 / 60);
-  let s = Math.floor(t % 3600 % 60);
+  const h = Math.floor(t / 3600);
+  const m = Math.floor(t % 3600 / 60);
+  const s = Math.floor(t % 3600 % 60);
 
-  let hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hours, ") : "";
+  const hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hours, ") : "";
   let mDisplay;
   if (s == 0)
     mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes ") : "";
   else
     mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes, ") : "";
-  let sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
+  const sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
 
   return hDisplay + mDisplay + sDisplay;
 }
@@ -355,7 +347,7 @@ function formatBytes(bytes, decimals = 2) {
 }
 
 function isURL(str) {
-  let pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+  const pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
     '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // domain name
     '((\\d{1,3}\\.){3}\\d{1,3}))|' + // OR ip (v4) address
     '([a-f0-9:]+:+)+[a-f0-9]+|' + // OR ip (v6) address
