@@ -8,6 +8,11 @@ let Options = {
 };
 
 $(function() { //On page load
+  d3.select('body').append('div')
+    .attr('id', 'tooltip')
+    .attr('style', 'position: absolute; opacity: 0;')
+    .attr('class', 'tooltip');
+
   if (localStorage.getItem('PollingRate') !== null) {
     Options.pollingRate = localStorage.getItem('PollingRate');
     $("#pollingRateVal").text(Options.pollingRate);
@@ -123,10 +128,10 @@ async function createServer(Server) {
   $("#" + interval).append("<p>Used Memory: <span id='usedmem" + interval + "'></span></p>");
   $("#" + interval).append("<p>Free Memory: <span id='freemem" + interval + "'></span></p>");
   $("#" + interval).append("<p class='dropdown-toggle' id='disksdropdown" + interval + "' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>Disks: <ul class='dropdown-menu' aria-labelledby='disksdropdown" + interval + "' id='disks" + interval + "'></ul></p>")
-  $("#" + interval).append("<p>CPU Usage: <span id='cpuUsage" + interval + "'></span></p>");
+  $("#" + interval).append("<p>CPU Usage over " + Math.floor((Options.dataPoints * Options.pollingRate) / 1000) + " seconds: <span id='cpuUsage" + interval + "'></span></p>");
   $("#" + interval).append("<svg id='cpuChart" + interval + "'></svg>");
-  $("#" + interval).append("<p>Core Performance: ");
-  $("#" + interval).append("<div id='coreCharts" + interval + "'>");
+  $("#" + interval).append("<p>Core Performance over " + Math.floor((50 * Options.pollingRate) / 1000) + " seconds: ");
+  $("#" + interval).append("<div class='row coreCharts pl-3' id='coreCharts" + interval + "'>");
 
   if (Server != "Current PC")
     $("#serverid" + interval).click(() => { deleteServer(Server, interval); });
@@ -140,7 +145,7 @@ async function createServer(Server) {
     GraphHeight = 60;
   }
 
-  await createAvgUsageGraph("#cpuChart" + interval, GraphWidth, GraphHeight, GraphWidth, GraphHeight).then((path) => { //create a graph with a height of 100, a width of 500, a xmax of 500, and a ymax of 100
+  await createAvgUsageGraph("#cpuChart" + interval, interval, GraphWidth, GraphHeight, GraphWidth, GraphHeight).then((path) => { //create a graph with a height of 100, a width of 500, a xmax of 500, and a ymax of 100
     console.log("Created CPU graph for " + Server);
     Graph = path;
   })
@@ -163,14 +168,14 @@ async function createServer(Server) {
 
     cpuAvgUsageData.push(Math.floor(data.cpuUsage.currentload));
     if (cpuAvgUsageData.length > Options.dataPoints) cpuAvgUsageData.shift();
-    updateAvgUsageGraph(GraphWidth, GraphHeight, cpuAvgUsageData, Graph);
+    updateAvgUsageGraph(GraphWidth, GraphHeight, cpuAvgUsageData, Graph.path, Graph.chart);
 
     //Theres definitely a much better way to write the following code lol
     if (isEmpty($('#coreCharts' + interval))) {
       for (let [i, cpu] of data.cpuUsage.cpus.entries()) {
         $("#coreCharts" + interval).append("<p><span id='coreUsage" + interval + "-" + i + "'></span></p>");
         $("#coreCharts" + interval).append("<svg id='coreChart" + interval + "-" + i + "'></svg></p>");
-        await createAvgUsageGraph("#coreChart" + interval + "-" + i, GraphWidth, GraphHeight, GraphWidth, GraphHeight).then((path) => {
+        await createAvgUsageGraph("#coreChart" + interval + "-" + i, interval, 100, 50, 100, 50, true).then((path) => {
           //console.log("Created Core graph for " + Server + " and core " + i);
           coreGraphs.push(path);
         });
@@ -186,9 +191,9 @@ async function createServer(Server) {
     for (let [i, cpu] of data.cpuUsage.cpus.entries()) {
       coreAvgUsageData[i].push(Math.floor(cpu.load));
       $("coreUsage" + interval + "-" + i).text(Math.floor(cpu.load));
-      if (coreAvgUsageData[i].length > Options.dataPoints) coreAvgUsageData[i].shift();
+      if (coreAvgUsageData[i].length > 50) coreAvgUsageData[i].shift();
 
-      updateAvgUsageGraph(GraphWidth, GraphHeight, coreAvgUsageData[i], coreGraphs[i]);
+      updateAvgUsageGraph(100, 50, coreAvgUsageData[i], coreGraphs[i].path, coreGraphs[i].chart);
     }
 
     let formattedDrives = _(data.disks)
@@ -223,10 +228,15 @@ function refreshServers() {
   }
 }
 
-async function createAvgUsageGraph(graph, width, height, xmax, ymax) {
+async function createAvgUsageGraph(graph, interval, width, height, xmax, ymax, border = false) {
+  //chart is a svg element
   let chart = d3.select(graph)
-    .attr('width', width + 50)
+    .attr('width', width)
     .attr('height', height + 10);
+
+  if (border) {
+    chart.attr('style', 'outline: thin solid black;');
+  }
 
   const x = d3.scaleLinear().domain([0, xmax]).range([0, xmax]);
   const y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
@@ -295,10 +305,10 @@ async function createAvgUsageGraph(graph, width, height, xmax, ymax) {
     .attr('class', 'grid')
     .attr('d', line);
 
-  return chart.append('path');
+  return { chart: chart, path: chart.append('path') };
 }
 
-async function updateAvgUsageGraph(xmax, ymax, data, path) {
+async function updateAvgUsageGraph(xmax, ymax, data, path, chart) {
   const x = d3.scaleLinear().domain([0, data.length]).range([0, xmax]);
   const y = d3.scaleLinear().domain([0, ymax]).range([ymax, 0]);
 
@@ -313,6 +323,22 @@ async function updateAvgUsageGraph(xmax, ymax, data, path) {
   path.datum(data)
     .attr('class', 'smoothline')
     .attr('d', smoothLine);
+
+  chart.on('mouseover', (d) => {
+    d3.select('#tooltip').transition().duration(200).style('opacity', 1);
+
+    d3.select('#tooltip').html((d) => {
+      return "Average: " + Math.floor(d3.mean(data)) + "% <br /> Max: " + Math.floor(d3.max(data)) + "%";
+    });
+  });
+
+  chart.on('mouseout', () => {
+    d3.select('#tooltip').style('opacity', 0);
+  });
+
+  chart.on('mousemove', function() {
+    d3.select('#tooltip').style('left', (d3.event.pageX+10) + 'px').style('top', (d3.event.pageY+10) + 'px')
+  });
 
   return true;
 }

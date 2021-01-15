@@ -47,4 +47,18 @@ li {
   margin-left: 1rem;
 }
 
+.tooltip {
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+}
+
 @media (min-width: 320px) and (max-width: 767px) {}
+@media only screen and (min-width: 768px) {
+  .coreCharts {
+    width: 60%;
+  }
+}
