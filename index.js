@@ -39,6 +39,12 @@ io.on('connection', (socket) => {
       io.emit('getProcessInfo', info);
     });
   });
+
+  socket.on('getNetworkInfo', () => {
+    getNetworkInfo().then((info) => {
+      io.emit('getNetworkInfo', info);
+    });
+  });
 });
 
 if (config.apiEnabled == true) {
@@ -96,6 +102,23 @@ async function getProcessInfo(service) {
   if (Verbose) {
     logging("getProcessInfo", "debug", "getProcessInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 100-1000 ms
     logging("getProcessInfo", "debug", JSON.stringify(info));
+  }
+
+  return info;
+}
+
+async function getNetworkInfo() {
+  if (Verbose) logging("getNetworkInfo", "debug", "getNetworkInfo has been called");
+
+  let t0 = present();
+  let info = "todo";
+
+  let t1 = present();
+  if ((t1 - t0) > 2000) logging("getNetworkInfo", "warning", "A getNetworkInfo call took unusually long to execute and took " + (t1 - t0) + " milliseconds to execute");
+
+  if (Verbose) {
+    logging("getNetworkInfo", "debug", "getNetworkInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 100-1000 ms
+    logging("getNetworkInfo", "debug", JSON.stringify(info));
   }
 
   return info;

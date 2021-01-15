@@ -41,16 +41,25 @@ img {
   width: 24px;
 }
 
-body {}
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+  color: #fff;
+  background-color: #303030;
+}
 
 li {
   margin-left: 1rem;
 }
 
+.server {
+  margin-bottom: 50px;
+}
+
 .tooltip {
   width: 120px;
-  background-color: black;
-  color: #fff;
+  background-color: #343434;
+  color: white;
   text-align: center;
   padding: 5px 0;
   border-radius: 6px;

@@ -117,7 +117,7 @@ async function createServer(Server) {
     server: Server
   });
 
-  $("#row").append("<div id='" + interval + "' class='col-md-6 mt-2'></div>");
+  $("#row").append("<div id='" + interval + "' class='col-md-6 mt-2 server'></div>");
   if (Server == "Current PC")
     $("#" + interval).append("<h3 id='serverid" + interval + "'>" + Server + "</h3>");
   else
@@ -128,7 +128,7 @@ async function createServer(Server) {
   $("#" + interval).append("<p>Used Memory: <span id='usedmem" + interval + "'></span></p>");
   $("#" + interval).append("<p>Free Memory: <span id='freemem" + interval + "'></span></p>");
   $("#" + interval).append("<p class='dropdown-toggle' id='disksdropdown" + interval + "' data-toggle='dropdown' aria-haspopup='true' aria-expanded='false'>Disks: <ul class='dropdown-menu' aria-labelledby='disksdropdown" + interval + "' id='disks" + interval + "'></ul></p>")
-  $("#" + interval).append("<p>CPU Usage over " + Math.floor((Options.dataPoints * Options.pollingRate) / 1000) + " seconds: <span id='cpuUsage" + interval + "'></span></p>");
+  $("#" + interval).append("<p>Average CPU Usage over " + Math.floor((Options.dataPoints * Options.pollingRate) / 1000) + " seconds: <span id='cpuUsage" + interval + "'></span></p>");
   $("#" + interval).append("<svg id='cpuChart" + interval + "'></svg>");
   $("#" + interval).append("<p>Core Performance over " + Math.floor((50 * Options.pollingRate) / 1000) + " seconds: ");
   $("#" + interval).append("<div class='row coreCharts pl-3' id='coreCharts" + interval + "'>");
@@ -160,15 +160,16 @@ async function createServer(Server) {
     if (Version != data.serverVer) {
       $("#serverid" + interval).addClass("outdated");
     }
-    $("#uptime" + interval).text(secondsToHMS(data.uptime));
-    $("#totalmem" + interval).text(formatBytes(data.totalmem));
-    $("#usedmem" + interval).text(formatBytes((data.totalmem - data.freemem)));
-    $("#freemem" + interval).text(formatBytes(data.freemem));
-    $("#cpuUsage" + interval).text(Math.floor(data.cpuUsage.currentload) + "%");
 
     cpuAvgUsageData.push(Math.floor(data.cpuUsage.currentload));
     if (cpuAvgUsageData.length > Options.dataPoints) cpuAvgUsageData.shift();
     updateAvgUsageGraph(GraphWidth, GraphHeight, cpuAvgUsageData, Graph.path, Graph.chart);
+
+    $("#uptime" + interval).text(secondsToHMS(data.uptime));
+    $("#totalmem" + interval).text(formatBytes(data.totalmem));
+    $("#usedmem" + interval).text(formatBytes((data.totalmem - data.freemem)));
+    $("#freemem" + interval).text(formatBytes(data.freemem));
+    $("#cpuUsage" + interval).text(Math.floor(d3.mean(cpuAvgUsageData)) + "%");
 
     //Theres definitely a much better way to write the following code lol
     if (isEmpty($('#coreCharts' + interval))) {
@@ -328,7 +329,7 @@ async function updateAvgUsageGraph(xmax, ymax, data, path, chart) {
     d3.select('#tooltip').transition().duration(200).style('opacity', 1);
 
     d3.select('#tooltip').html((d) => {
-      return "Average: " + Math.floor(d3.mean(data)) + "% <br /> Max: " + Math.floor(d3.max(data)) + "%";
+      return "Current: " + Math.floor(data[data.length - 1]) +"% <br /> Average: " + Math.floor(d3.mean(data)) + "% <br /> Max: " + Math.floor(d3.max(data)) + "%";
     });
   });
 
