@@ -1,4 +1,4 @@
-const Version = "0.1"; //Update if getInfo returns new info
+const Version = "0.2"; //Update if getInfo returns new info
 let Servers = [];
 let Intervals = [];
 
@@ -110,6 +110,7 @@ async function createServer(Server) {
 
   let interval = setInterval(() => {
     socket.emit('getInfo');
+    socket.emit('getNetworkInfo');
   }, Options.pollingRate);
 
   Intervals.push({
@@ -132,6 +133,8 @@ async function createServer(Server) {
   $("#" + interval).append("<svg id='cpuChart" + interval + "'></svg>");
   $("#" + interval).append("<p>Core Performance over " + Math.floor((50 * Options.pollingRate) / 1000) + " seconds: ");
   $("#" + interval).append("<div class='row coreCharts pl-3' id='coreCharts" + interval + "'>");
+  $("#" + interval).append("<p style='padding-top: 5px;'>Network: ")
+  $("#" + interval).append("<table><tbody id='networkList" + interval + "'></tbody>");
 
   if (Server != "Current PC")
     $("#serverid" + interval).click(() => { deleteServer(Server, interval); });
@@ -201,14 +204,33 @@ async function createServer(Server) {
       .groupBy('_mounted')
       .map((value, key) => ({
         drive: key,
-        capacity: _.sumBy(value, '_capacity')
+        capacity: _.sumBy(value, '_capacity'),
+        available: _.sumBy(value, '_available'),
+        used: _.sumBy(value, '_used')
       })).value();
 
-    $('#disks' + interval).empty()
+    $('#disks' + interval).empty();
     for (const disk of formattedDrives) {
       $('#disks' + interval).append("<li>" + disk.drive + " " + disk.capacity);
+      $('#disks' + interval).append("<li class='capacity'>Used: " + formatBytes(disk.used) + "<br />Available: " + formatBytes(disk.available));
     }
   });
+
+  socket.on('getNetworkInfo', (data) => {
+    let formattedInfo = _(data)
+      .groupBy('iface')
+      .map((value, key) => ({
+        iface: key,
+        state: _.sumBy(value, 'operstate')
+      })).value();
+
+    $('#networkList' + interval).empty();
+    $('#networkList' + interval).append("<tr><th>Interface</th><th>State</th>");
+    for (const network of formattedInfo) {
+      $('#networkList' + interval).append("<tr><th>" + network.iface + "</th><th>" + network.state + "</th>");
+    }
+    console.log(formattedInfo);
+  })
 }
 
 function deleteServer(server, ID) {
@@ -236,7 +258,7 @@ async function createAvgUsageGraph(graph, interval, width, height, xmax, ymax, b
     .attr('height', height + 10);
 
   if (border) {
-    chart.attr('style', 'outline: thin solid black;');
+    chart.attr('style', 'outline: thin solid black; padding: 2px;');
   }
 
   const x = d3.scaleLinear().domain([0, xmax]).range([0, xmax]);

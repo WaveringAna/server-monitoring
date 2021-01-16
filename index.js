@@ -9,7 +9,7 @@ const nodeDiskInfo = require('node-disk-info');
 const config = require('./config.json');
 const logging = require('./lib/logging.js');
 
-const Version = "0.1"; //Update if getInfo returns new info
+const Version = "0.2"; //Update if getInfo returns new info
 let Verbose = false;
 if (config.logging == "verbose") Verbose = true;
 
@@ -111,7 +111,7 @@ async function getNetworkInfo() {
   if (Verbose) logging("getNetworkInfo", "debug", "getNetworkInfo has been called");
 
   let t0 = present();
-  let info = "todo";
+  let info = await si.networkInterfaces();
 
   let t1 = present();
   if ((t1 - t0) > 2000) logging("getNetworkInfo", "warning", "A getNetworkInfo call took unusually long to execute and took " + (t1 - t0) + " milliseconds to execute");

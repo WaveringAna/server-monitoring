@@ -45,7 +45,7 @@ html, body {
   max-width: 100%;
   overflow-x: hidden;
   color: #fff;
-  background-color: #303030;
+  background-color: #181818;
 }
 
 li {
@@ -63,6 +63,37 @@ li {
   text-align: center;
   padding: 5px 0;
   border-radius: 6px;
+}
+
+.dropdown-menu {
+  width: 200px;
+  background-color: #343434;
+  color: white;
+  padding: 5px 0;
+  padding-top: 2px;
+  border-radius: 6px;
+}
+
+.dropdown-item {
+  color: white;
+}
+
+.capacity {
+  font-size: 0.7em;
+  color: white;
+  padding-bottom: 10px;
+}
+
+table, th, tr, td {
+  color: #b1b1b1;
+}
+
+th {
+  width: 400px;
+}
+
+.coreCharts {
+  padding-bottom: 5px;
 }
 
 @media (min-width: 320px) and (max-width: 767px) {}
