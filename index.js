@@ -9,7 +9,7 @@ const nodeDiskInfo = require('node-disk-info');
 const config = require('./config.json');
 const logging = require('./lib/logging.js');
 
-const Version = "0.2"; //Update if getInfo returns new info
+const Version = "0.3"; //Update if getInfo returns new info
 let Verbose = false;
 if (config.logging == "verbose") Verbose = true;
 
@@ -80,7 +80,7 @@ async function getInfo() {
   };
 
   let t1 = present();
-  if ((t1 - t0) > 2000) logging("getInfo", "warning", "A getInfo call took unusually long to execute and took " + (t1 - t0) + " milliseconds to execute");
+  if ((t1 - t0) > 3000) logging("getInfo", "warning", "A getInfo call took unusually long to execute and took " + (t1 - t0) + " milliseconds to execute");
 
   if (Verbose) {
     logging("getInfo", "debug", "getInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 100-1000 ms
@@ -97,7 +97,7 @@ async function getProcessInfo(service) {
   let info = await si.services(service);
 
   let t1 = present();
-  if ((t1 - t0) > 2000) logging("getProcessInfo", "warning", "A getProcessInfo call took unusually long to execute and took " + (t1 - t0) + " milliseconds to execute");
+  if ((t1 - t0) > 3000) logging("getProcessInfo", "warning", "A getProcessInfo call took unusually long to execute and took " + (t1 - t0) + " milliseconds to execute");
 
   if (Verbose) {
     logging("getProcessInfo", "debug", "getProcessInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 100-1000 ms
@@ -114,7 +114,7 @@ async function getNetworkInfo() {
   let info = await si.networkInterfaces();
 
   let t1 = present();
-  if ((t1 - t0) > 2000) logging("getNetworkInfo", "warning", "A getNetworkInfo call took unusually long to execute and took " + (t1 - t0) + " milliseconds to execute");
+  if ((t1 - t0) > 3000) logging("getNetworkInfo", "warning", "A getNetworkInfo call took unusually long to execute and took " + (t1 - t0) + " milliseconds to execute");
 
   if (Verbose) {
     logging("getNetworkInfo", "debug", "getNetworkInfo function took " + (t1 - t0) + " milliseconds to execute.") //Should be close to 100-1000 ms

@@ -1,9 +1,9 @@
-const Version = "0.2"; //Update if getInfo returns new info
+const Version = "0.3"; //Update if getInfo returns new info
 let Servers = [];
 let Intervals = [];
 
 let Options = {
-  pollingRate: 500, //milliseconds
+  pollingRate: 1000, //milliseconds
   dataPoints: 50
 };
 
@@ -164,7 +164,7 @@ async function createServer(Server) {
       $("#serverid" + interval).addClass("outdated");
     }
 
-    cpuAvgUsageData.push(Math.floor(data.cpuUsage.currentload));
+    cpuAvgUsageData.push(Math.floor(data.cpuUsage.currentLoad));
     if (cpuAvgUsageData.length > Options.dataPoints) cpuAvgUsageData.shift();
     updateAvgUsageGraph(GraphWidth, GraphHeight, cpuAvgUsageData, Graph.path, Graph.chart);
 
@@ -229,7 +229,7 @@ async function createServer(Server) {
     for (const network of formattedInfo) {
       $('#networkList' + interval).append("<tr><th>" + network.iface + "</th><th>" + network.state + "</th>");
     }
-    console.log(formattedInfo);
+    //console.log(formattedInfo);
   })
 }
 
