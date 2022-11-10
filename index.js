@@ -10,8 +10,6 @@ const logging = require('./lib/logging.js');
 
 const Version = "0.3"; //Update if getInfo returns new info
 
-console.log(process.env)
-
 const log = process.env.LOGGING || false;
 const apiEnabled = process.env.APIENABLED || false;
 const webPort = process.env.PORT || 8080;

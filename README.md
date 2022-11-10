@@ -1,27 +1,69 @@
 ## Simple open source server monitoring software made with Node.js
 
-![](https://i.nekomimi.pet/$/mDKyA)
+![](https://i.nekomimi.pet/!NBrWUPmghk)
 
 Requirements
 ------------
-* node v7+
-
-```bash
-sudo apt-get install npm
-sudo npm install n -g
-sudo n stable
-npm update
-npm install
-```
+* node v16+
 
 Configure
 -------------
-config.json is the configuration file.
+
+### Environment variables
+
+Environment variables are used for configuration
+They are set automatically as default through the Dockerfile and are assumed if none are provided
+
+- `LOGGING`
+  - Enables verbose logging, this is a boolean
+  - The default value is false
+- `APIENABLED`
+  - Enables the API, this is a boolean
+  - The default value is false
+- `PORT`
+  - The port for the webpage
+  - The default value is 8080
+- `APIPORT`
+  - The port for the API
+  - The default value is 8081
 
 Run
 -------------
+
+### Running from source
+
 ```bash
 node index.js
+```
+
+### Running from Docker
+```bash
+docker run -d waveringana/server-monitoring \
+  -p 8080:8080 \
+  -e LOGGING=false \
+  =e APIENABLED=false \
+  -e PORT=8080 \
+  -e APIPORT=8081 \
+  waveringana/server-monitoring
+```
+
+### Running from Docker-Compose
+```yml
+version: "3.0"
+services:
+  server-monitoring
+    image: waveringana/server-monitoring
+    container_name server-monitoring
+    environment:
+      - LOGGING=false
+      - APIENABLED=false
+      - PORT=8080
+      - APIPORT=8081
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 ```
 
 API
