@@ -2,6 +2,8 @@
 
 ![](https://i.nekomimi.pet/!NBrWUPmghk)
 
+[A Live Demo](https://demoservermonitoring.fly.dev/ "Live Demo").
+
 Requirements
 ------------
 * node v16+
