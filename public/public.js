@@ -3,7 +3,7 @@ let Servers = [];
 let Intervals = [];
 
 let Options = {
-  pollingRate: 1000, //milliseconds
+  pollingRate: 2000, //milliseconds
   dataPoints: 50
 };
 
